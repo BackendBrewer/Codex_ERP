@@ -11,11 +11,11 @@ class Student extends Model
 {
     use BelongsToAcademy;
 
-    protected $fillable = ['admission_no', 'name', 'father_name', 'guardian_phone', 'gender', 'date_of_birth', 'class_id', 'admission_date', 'monthly_fee', 'status', 'address'];
+    protected $fillable = ['admission_no', 'name', 'father_name', 'guardian_phone', 'gender', 'date_of_birth', 'class_id', 'admission_date', 'monthly_fee', 'admission_fee', 'fee_adjust_month', 'photo_path', 'status', 'address'];
 
     protected function casts(): array
     {
-        return ['date_of_birth' => 'date', 'admission_date' => 'date', 'monthly_fee' => 'decimal:2'];
+        return ['date_of_birth' => 'date', 'admission_date' => 'date', 'fee_adjust_month' => 'date', 'monthly_fee' => 'decimal:2', 'admission_fee' => 'decimal:2'];
     }
 
     public function academyClass(): BelongsTo

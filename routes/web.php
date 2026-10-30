@@ -32,9 +32,16 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('role:admin')->group(function (): void {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::get('/reports', [AcademyModuleController::class, 'reports'])->name('reports');
+        Route::get('/fees/bulk', [AcademyModuleController::class, 'bulkFeeForm'])->name('fees.bulk.form');
+        Route::post('/fees/bulk', [AcademyModuleController::class, 'generateBulkFees'])->name('fees.bulk.generate');
+        Route::get('/fees/monthly-students', [AcademyModuleController::class, 'monthlyFeeStudents'])->name('fees.monthly-students');
         Route::post('/inquiries/{id}/admit', [AcademyModuleController::class, 'admitInquiry'])->whereNumber('id')->name('inquiries.admit');
         Route::get('/receipts/{id}/print', [AcademyModuleController::class, 'printReceipt'])->whereNumber('id')->name('receipts.print');
         Route::get('/fee-challans/{id}/print', [AcademyModuleController::class, 'printChallan'])->whereNumber('id')->name('challans.print');
+        Route::get('/fee-heads/{scope}', [AcademyModuleController::class, 'feeHeads'])->whereIn('scope', ['class', 'academy', 'student'])->name('fee-heads.index');
+        Route::post('/fee-heads/{scope}', [AcademyModuleController::class, 'storeFeeHead'])->whereIn('scope', ['class', 'academy', 'student'])->name('fee-heads.store');
+        Route::put('/fee-heads/{scope}/{id}', [AcademyModuleController::class, 'updateFeeHead'])->whereIn('scope', ['class', 'academy', 'student'])->whereNumber('id')->name('fee-heads.update');
+        Route::delete('/fee-heads/{scope}/{id}', [AcademyModuleController::class, 'deleteFeeHead'])->whereIn('scope', ['class', 'academy', 'student'])->whereNumber('id')->name('fee-heads.delete');
         Route::get('/{module}', [AcademyModuleController::class, 'index'])->whereIn('module', array_keys(config('academy.modules')))->name('modules.index');
         Route::get('/{module}/create', [AcademyModuleController::class, 'create'])->whereIn('module', array_keys(config('academy.modules')))->name('modules.create');
         Route::post('/{module}', [AcademyModuleController::class, 'store'])->whereIn('module', array_keys(config('academy.modules')))->name('modules.store');

@@ -27,30 +27,31 @@ return [
         ],
         'students' => [
             'label' => 'Students', 'singular' => 'Student', 'icon' => '♙', 'model' => Student::class,
-            'columns' => ['admission_no' => 'Admission ID', 'name' => 'Student', 'father_name' => 'Father name', 'guardian_phone' => 'Parent phone', 'academyClass.name' => 'Class', 'monthly_fee' => 'Monthly fee', 'status' => 'Status'],
+            'columns' => ['photo_path' => 'Photo', 'admission_no' => 'Admission ID', 'name' => 'Student', 'father_name' => 'Father name', 'guardian_phone' => 'Parent phone', 'academyClass.name' => 'Class', 'academyClass.program' => 'Subject group', 'academyClass.section' => 'Section', 'monthly_fee' => 'Monthly fee', 'admission_fee' => 'Admission fee', 'fee_adjust_month' => 'Fee starts', 'status' => 'Status'],
             'with' => ['academyClass'], 'searchable' => ['admission_no', 'name', 'father_name', 'guardian_phone'],
             'fields' => [
                 'admission_no' => ['label' => 'Admission ID (auto if blank)', 'type' => 'text'], 'name' => ['label' => 'Student name', 'type' => 'text', 'required' => true],
                 'father_name' => ['label' => 'Father / guardian name', 'type' => 'text', 'required' => true], 'guardian_phone' => ['label' => 'Parent mobile (03xx)', 'type' => 'tel', 'required' => true],
                 'gender' => ['label' => 'Gender', 'type' => 'select', 'options' => ['female' => 'Female', 'male' => 'Male']], 'date_of_birth' => ['label' => 'Date of birth', 'type' => 'date'],
-                'class_id' => ['label' => 'Class / program', 'type' => 'select', 'source' => 'classes', 'required' => true], 'admission_date' => ['label' => 'Admission date', 'type' => 'date', 'required' => true],
-                'monthly_fee' => ['label' => 'Monthly fee (PKR)', 'type' => 'number', 'required' => true], 'status' => ['label' => 'Status', 'type' => 'select', 'options' => ['active' => 'Active', 'leave' => 'On leave', 'struck_off' => 'Struck off', 'passed_out' => 'Passed out'], 'required' => true],
+                'class_id' => ['label' => 'Class', 'type' => 'select', 'source' => 'classes', 'required' => true], 'admission_date' => ['label' => 'Admission date', 'type' => 'date', 'required' => true],
+                'monthly_fee' => ['label' => 'Monthly fee (PKR)', 'type' => 'number', 'required' => true], 'admission_fee' => ['label' => 'Admission fee (PKR)', 'type' => 'number'], 'fee_adjust_month' => ['label' => 'Fee starts from month', 'type' => 'month', 'required' => true],
+                'status' => ['label' => 'Status', 'type' => 'select', 'options' => ['active' => 'Active', 'leave' => 'On leave', 'struck_off' => 'Struck off', 'passed_out' => 'Passed out'], 'required' => true],
                 'address' => ['label' => 'Home address', 'type' => 'textarea'],
             ],
         ],
         'classes' => [
             'label' => 'Classes & programs', 'singular' => 'Class', 'icon' => '▦', 'model' => AcademyClass::class,
-            'columns' => ['name' => 'Class', 'section' => 'Section', 'program' => 'Program', 'monthly_fee' => 'Monthly fee', 'capacity' => 'Capacity', 'active' => 'Active'], 'searchable' => ['name', 'section', 'program'],
-            'fields' => ['name' => ['label' => 'Class name', 'type' => 'text', 'required' => true], 'section' => ['label' => 'Section', 'type' => 'text'], 'program' => ['label' => 'Program / track', 'type' => 'text'], 'monthly_fee' => ['label' => 'Default monthly fee (PKR)', 'type' => 'number', 'required' => true], 'capacity' => ['label' => 'Seat capacity', 'type' => 'number', 'required' => true], 'active' => ['label' => 'Active', 'type' => 'checkbox']],
+            'columns' => ['name' => 'Class', 'section' => 'Section', 'program' => 'Subject group', 'monthly_fee' => 'Monthly fee', 'capacity' => 'Capacity', 'active' => 'Active'], 'searchable' => ['name', 'section', 'program'],
+            'fields' => ['name' => ['label' => 'Class name', 'type' => 'text', 'required' => true], 'section' => ['label' => 'Section', 'type' => 'text', 'required' => true], 'program' => ['label' => 'Subject group', 'type' => 'text', 'required' => true], 'monthly_fee' => ['label' => 'Default monthly fee (PKR)', 'type' => 'number', 'required' => true], 'capacity' => ['label' => 'Seat capacity', 'type' => 'number', 'required' => true], 'active' => ['label' => 'Active', 'type' => 'checkbox']],
         ],
         'fees' => [
             'label' => 'Fee challans', 'singular' => 'Fee challan', 'icon' => '▤', 'model' => FeeInvoice::class,
-            'columns' => ['invoice_no' => 'Challan #', 'student.admission_no' => 'Admission ID', 'student.name' => 'Student', 'invoice_month' => 'For month', 'due_date' => 'Due date', 'amount' => 'Amount', 'status' => 'Status'], 'with' => ['student'], 'searchable' => ['invoice_no'],
+            'columns' => ['invoice_no' => 'Challan #', 'student.admission_no' => 'Admission ID', 'student.name' => 'Student', 'student.academyClass.name' => 'Class', 'invoice_month' => 'For month', 'due_date' => 'Due date', 'amount' => 'Amount', 'discount' => 'Discount', 'late_fee' => 'Late fee', 'status' => 'Status'], 'with' => ['student.academyClass', 'payments'], 'searchable' => ['invoice_no', 'student.name', 'student.admission_no', 'student.guardian_phone'],
             'fields' => ['invoice_no' => ['label' => 'Challan number (auto if blank)', 'type' => 'text'], 'student_id' => ['label' => 'Student', 'type' => 'select', 'source' => 'students', 'required' => true], 'invoice_month' => ['label' => 'Fee month', 'type' => 'month', 'required' => true], 'due_date' => ['label' => 'Due date', 'type' => 'date', 'required' => true], 'amount' => ['label' => 'Tuition fee (PKR)', 'type' => 'number', 'required' => true], 'discount' => ['label' => 'Discount (PKR)', 'type' => 'number'], 'late_fee' => ['label' => 'Late fee (PKR)', 'type' => 'number'], 'status' => ['label' => 'Status', 'type' => 'select', 'options' => ['unpaid' => 'Unpaid', 'partial' => 'Partially paid', 'paid' => 'Paid', 'waived' => 'Waived']], 'remarks' => ['label' => 'Remarks', 'type' => 'textarea']],
         ],
         'payments' => [
             'label' => 'Fee receipts', 'singular' => 'Fee receipt', 'icon' => '₨', 'model' => FeePayment::class,
-            'columns' => ['receipt_no' => 'Receipt #', 'student.admission_no' => 'Admission ID', 'student.name' => 'Student', 'amount' => 'Received (PKR)', 'paid_at' => 'Paid at', 'method' => 'Method'], 'with' => ['student', 'invoice'], 'searchable' => ['receipt_no'],
+            'columns' => ['receipt_no' => 'Receipt #', 'student.admission_no' => 'Admission ID', 'student.name' => 'Student', 'amount' => 'Received (PKR)', 'paid_at' => 'Paid at', 'method' => 'Method'], 'with' => ['student', 'invoice'], 'searchable' => ['receipt_no', 'student.name', 'student.admission_no', 'invoice.invoice_no'],
             'fields' => ['receipt_no' => ['label' => 'Receipt number (auto if blank)', 'type' => 'text'], 'fee_invoice_id' => ['label' => 'Fee challan', 'type' => 'select', 'source' => 'invoices', 'required' => true], 'student_id' => ['label' => 'Student', 'type' => 'select', 'source' => 'students', 'required' => true], 'amount' => ['label' => 'Amount received (PKR)', 'type' => 'number', 'required' => true], 'paid_at' => ['label' => 'Payment date / time', 'type' => 'datetime-local', 'required' => true], 'method' => ['label' => 'Payment method', 'type' => 'select', 'options' => ['cash' => 'Cash', 'bank' => 'Bank transfer', 'easypaisa' => 'Easypaisa', 'jazzcash' => 'JazzCash', 'cheque' => 'Cheque'], 'required' => true]],
         ],
         'attendance' => [

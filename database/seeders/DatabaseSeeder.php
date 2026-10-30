@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
         }
 
         User::query()->updateOrCreate(['email' => env('SUPERADMIN_EMAIL', 'superadmin@ustaad.pk')], [
-            'name' => env('SUPERADMIN_NAME', 'Ustaad Super Admin'),
+            'name' => env('SUPERADMIN_NAME', 'MSZ Super Admin'),
             'role' => 'super_admin',
             'academy_id' => null,
             'password' => $password,
