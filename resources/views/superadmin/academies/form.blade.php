@@ -1,0 +1,22 @@
+@extends('superadmin.layout', ['title' => $academy ? 'Edit academy' : 'Add academy'])
+
+@section('content')
+<section class="page-heading"><div><div class="eyebrow"><a href="{{ route('superadmin.academies') }}">Academies</a> / {{ $academy ? 'Edit details' : 'New academy' }}</div><h1>{{ $academy ? 'Edit academy' : 'Add an academy' }}</h1><p>{{ $academy ? 'Update this academy’s contact and location details.' : 'Set up an academy and its administrator account together.' }}</p></div></section>
+<form method="POST" action="{{ $academy ? route('superadmin.academies.update', $academy) : route('superadmin.academies.store') }}" class="panel form-panel academy-form">@csrf @if ($academy) @method('PUT') @endif
+    <div class="section-title"><b>Academy details</b><span>Account and contact information</span></div><div class="form-grid">
+        <div class="form-field"><label for="name">Academy name <i>*</i></label><input id="name" name="name" value="{{ old('name', $academy?->name) }}" required maxlength="255" placeholder="e.g. Bright Future Academy">@error('name')<small class="field-error">{{ $message }}</small>@enderror</div>
+        <div class="form-field"><label for="contact_email">Academy contact email</label><input id="contact_email" name="contact_email" type="email" value="{{ old('contact_email', $academy?->contact_email) }}" placeholder="office@academy.pk">@error('contact_email')<small class="field-error">{{ $message }}</small>@enderror</div>
+        <div class="form-field"><label for="contact_phone">Phone number</label><input id="contact_phone" name="contact_phone" type="tel" value="{{ old('contact_phone', $academy?->contact_phone) }}" placeholder="03xx xxxxxxx"></div>
+        <div class="form-field"><label for="city">City</label><input id="city" name="city" value="{{ old('city', $academy?->city) }}" placeholder="e.g. Lahore"></div>
+        <div class="form-field"><label for="province">Province / territory</label><select id="province" name="province"><option value="">Select province</option>@foreach (['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Islamabad Capital Territory', 'Gilgit-Baltistan', 'Azad Jammu and Kashmir'] as $province)<option value="{{ $province }}" @selected(old('province', $academy?->province) === $province)>{{ $province }}</option>@endforeach</select></div>
+        <div class="form-field wide"><label for="address">Address</label><textarea id="address" name="address" rows="3" maxlength="1000" placeholder="Campus street address">{{ old('address', $academy?->address) }}</textarea></div>
+    </div>
+    @if (! $academy)<div class="section-title admin-section"><b>Academy administrator</b><span>This person will sign in to manage this academy’s students, fees and records.</span></div><div class="form-grid">
+        <div class="form-field"><label for="admin_name">Admin full name <i>*</i></label><input id="admin_name" name="admin_name" value="{{ old('admin_name') }}" required maxlength="255" placeholder="Academy administrator">@error('admin_name')<small class="field-error">{{ $message }}</small>@enderror</div>
+        <div class="form-field"><label for="admin_email">Admin login email <i>*</i></label><input id="admin_email" name="admin_email" type="email" value="{{ old('admin_email') }}" required maxlength="255" placeholder="admin@academy.pk">@error('admin_email')<small class="field-error">{{ $message }}</small>@enderror</div>
+        <div class="form-field"><label for="admin_password">Temporary password <i>*</i></label><input id="admin_password" name="admin_password" type="password" required minlength="12" autocomplete="new-password">@error('admin_password')<small class="field-error">{{ $message }}</small>@enderror</div>
+        <div class="form-field"><label for="admin_password_confirmation">Confirm password <i>*</i></label><input id="admin_password_confirmation" name="admin_password_confirmation" type="password" required minlength="12" autocomplete="new-password"></div>
+    </div><p class="form-hint">The academy admin will only see records belonging to this academy.</p>@else<div class="form-hint admin-section">Academy administrator: <b>{{ $academy->administrator?->name ?? 'Not assigned' }}</b> · {{ $academy->administrator?->email ?? '' }}</div>@endif
+    <div class="form-actions"><a class="btn-outline" href="{{ route('superadmin.academies') }}">Cancel</a><button class="btn-primary" type="submit">{{ $academy ? 'Save academy' : 'Create academy & admin' }}</button></div>
+</form>
+@endsection
