@@ -1,23 +1,79 @@
 @extends('layouts.app', ['title' => 'Overview'])
 
 @section('content')
-<section class="page-heading"><div><div class="eyebrow">{{ now()->timezone('Asia/Karachi')->format('l, d F Y') }}</div><h1>Good morning, {{ Str::before(auth()->user()->name, ' ') }} <span>☀</span></h1><p>Your academy overview for today.</p></div>@if ($features['students'])<a class="btn-primary" href="{{ route('modules.create', 'students') }}">＋ Add student</a>@endif</section>
-<section class="metric-grid">
-    @if ($features['students'])<article class="metric-card"><div class="metric-label">Active students <span class="metric-icon">♙</span></div><strong>{{ number_format($stats['students']) }}</strong><small>Currently enrolled</small></article>@endif
-    @if ($features['fees'])<article class="metric-card"><div class="metric-label">Fees collected this month <span class="metric-icon">₨</span></div><strong class="money">₨ {{ number_format((float) $stats['collections']) }}</strong><small>Recorded receipts</small></article>@endif
-    @if ($features['fee_balance'])<article class="metric-card"><div class="metric-label">Outstanding challans <span class="metric-icon amber">◷</span></div><strong class="money">₨ {{ number_format((float) $stats['pending']) }}</strong><small>Unpaid or partial</small></article>@endif
-    @if ($features['inquiries'])<article class="metric-card"><div class="metric-label">Open inquiries <span class="metric-icon violet">♧</span></div><strong>{{ number_format($stats['inquiries']) }}</strong><small>Follow-up required</small></article>@endif
-</section>
-<section class="dashboard-grid">
-    @if ($features['fees'])<article class="panel"><div class="panel-heading"><div><h2>Recent fee receipts</h2><p>Latest payments recorded at your academy.</p></div><a class="text-link" href="{{ route('modules.index', 'payments') }}">All receipts →</a></div>
-        <div class="table-scroll"><table><thead><tr><th>Receipt</th><th>Student</th><th>Class</th><th>Date</th><th>Amount</th><th>Method</th></tr></thead><tbody>
-        @forelse ($payments as $payment)<tr><td class="table-strong">{{ $payment->receipt_no }}</td><td><div class="person-cell"><span class="person-initial">{{ mb_substr($payment->student->name, 0, 1) }}</span><span><b>{{ $payment->student->name }}</b><small>{{ $payment->student->admission_no }}</small></span></div></td><td>{{ $payment->student->academyClass?->name ?? '—' }}</td><td>{{ $payment->paid_at->timezone('Asia/Karachi')->format('d M, Y') }}</td><td class="table-strong">₨ {{ number_format((float) $payment->amount) }}</td><td><span class="status-pill paid">{{ ucfirst($payment->method) }}</span></td></tr>
-        @empty<tr><td colspan="6" class="empty-state">No fee receipts yet. Create a fee challan, then record a payment.</td></tr>@endforelse
-        </tbody></table></div>
-    </article>@endif
-    <div class="dashboard-side">
-        @if ($features['inquiries'] || $features['accounts'] || $features['reports'])<article class="panel attendance-panel"><div class="panel-heading"><div><h2>Today at a glance</h2><p>Academy activity</p></div><span class="live-dot">●</span></div>@if ($features['inquiries'])<div class="quick-metric"><span>New admissions pipeline</span><a href="{{ route('modules.index', 'inquiries') }}">{{ $stats['inquiries'] }} open inquiries →</a></div>@endif @if ($features['accounts'])<div class="quick-metric"><span>Monthly income</span><b>₨ {{ number_format((float) $stats['income']) }}</b></div><div class="quick-metric"><span>Monthly expenses</span><b>₨ {{ number_format((float) $stats['expenses']) }}</b></div>@endif @if ($features['reports'])<a class="btn-outline full-width" href="{{ route('reports') }}">Open reports</a>@endif</article>@endif
-        @if ($features['inquiries'] || $features['students'] || auth()->user()->hasFeature('fees.single') || $features['attendance'] || auth()->user()->hasFeature('accounts'))<article class="panel quick-panel"><h2>Quick actions</h2><div class="quick-links">@if ($features['inquiries'])<a href="{{ route('modules.create', 'inquiries') }}"><span>＋</span>New inquiry</a>@endif @if ($features['students'])<a href="{{ route('modules.create', 'students') }}"><span>♙</span>Add student</a>@endif @if (auth()->user()->hasFeature('fees.single'))<a href="{{ route('modules.create', 'fees') }}"><span>▤</span>Fee challan</a>@endif @if ($features['attendance'])<a href="{{ route('modules.create', 'attendance') }}"><span>✓</span>Mark attendance</a>@endif @if (auth()->user()->hasFeature('accounts'))<a href="{{ route('modules.create', 'accounts') }}"><span>₨</span>Ledger entry</a>@endif</div></article>@endif
+@php
+    $hour = (int) now()->timezone('Asia/Karachi')->format('G');
+    $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+    $attendanceTotal = (int) $attendanceToday->sum();
+    $attendancePresent = (int) ($attendanceToday['present'] ?? 0) + (int) ($attendanceToday['late'] ?? 0);
+    $attendanceRate = $attendanceTotal > 0 ? (int) round(($attendancePresent / $attendanceTotal) * 100) : 0;
+    $maxCollection = max(1, (float) collect($collectionHistory)->max('amount'));
+@endphp
+<section class="welcome-panel">
+    <div class="welcome-copy"><span class="section-eyebrow"><i></i> {{ now()->timezone('Asia/Karachi')->format('l · d F Y') }}</span><h1>{{ $greeting }}, {{ Str::before(auth()->user()->name, ' ') }}.</h1><p>Here’s what’s happening at <strong>{{ auth()->user()->academy?->name ?? 'your academy' }}</strong> today.</p></div>
+    <div class="welcome-actions">
+        @if ($features['inquiries'])<a class="button button-quiet" href="{{ route('modules.create', 'inquiries') }}"><span>＋</span> New inquiry</a>@endif
+        @if ($features['students'])<a class="button button-bright" href="{{ route('modules.create', 'students') }}"><span>＋</span> Enroll student</a>@endif
     </div>
+</section>
+
+<section class="overview-grid" aria-label="Academy overview">
+    @if ($features['students'])<a class="overview-card" href="{{ route('modules.index', 'students') }}"><span class="overview-icon icon-blue">♙</span><span class="overview-label">Enrolled students</span><strong>{{ number_format($stats['students']) }}</strong><small>Active student records <b>↗</b></small></a>@endif
+    @if ($features['fees'])<a class="overview-card" href="{{ route('modules.index', 'payments') }}"><span class="overview-icon icon-green">₨</span><span class="overview-label">Collected this month</span><strong class="overview-money">₨ {{ number_format((float) $stats['collections']) }}</strong><small>Fee receipts · {{ now()->format('F') }} <b>↗</b></small></a>@endif
+    @if ($features['fee_balance'])<a class="overview-card" href="{{ auth()->user()->hasFeature('fees.reports.pending') ? route('reports', ['fee_report' => 'pending']) : route('modules.index', 'fees') }}"><span class="overview-icon icon-amber">◷</span><span class="overview-label">Fees outstanding</span><strong class="overview-money">₨ {{ number_format((float) $stats['pending']) }}</strong><small>Unpaid and partial bills <b>↗</b></small></a>@endif
+    @if ($features['inquiries'])<a class="overview-card" href="{{ route('modules.index', 'inquiries') }}"><span class="overview-icon icon-violet">↗</span><span class="overview-label">Admissions pipeline</span><strong>{{ number_format($stats['inquiries']) }}</strong><small>Inquiries needing follow-up <b>↗</b></small></a>@endif
+</section>
+
+<section class="dashboard-content-grid">
+    <div class="dashboard-primary-column">
+        @if ($features['fees'])
+        <article class="workspace-card collection-card">
+            <div class="workspace-card-heading"><div><span class="section-eyebrow">FINANCE · LAST SIX MONTHS</span><h2>Fee collection</h2><p>Payments recorded across your academy.</p></div><a class="button button-quiet" href="{{ route('modules.index', 'payments') }}">View receipts <span>↗</span></a></div>
+            <div class="collection-chart" role="img" aria-label="Monthly fee collection for the last six months">
+                @foreach ($collectionHistory as $month)
+                <div class="chart-column"><div class="chart-value">@if ($month['amount'] > 0)₨ {{ number_format($month['amount'], 0) }}@endif</div><div class="chart-track"><span style="height: {{ max(3, (int) round(($month['amount'] / $maxCollection) * 100)) }}%"></span></div><small>{{ $month['label'] }}</small></div>
+                @endforeach
+            </div>
+        </article>
+        @endif
+
+        @if ($features['fees'])
+        <article class="workspace-card recent-card">
+            <div class="workspace-card-heading"><div><span class="section-eyebrow">LATEST ACTIVITY</span><h2>Recent fee receipts</h2><p>Most recent payments entered by your team.</p></div><a class="text-link" href="{{ route('modules.index', 'payments') }}">All receipts <span>→</span></a></div>
+            <div class="table-scroll"><table class="workspace-table"><thead><tr><th>Student</th><th>Receipt</th><th>Paid on</th><th>Method</th><th class="align-right">Amount</th></tr></thead><tbody>
+            @forelse ($payments as $payment)
+            <tr><td><div class="student-cell"><span class="student-avatar">{{ mb_substr($payment->student->name, 0, 1) }}</span><span><strong>{{ $payment->student->name }}</strong><small>{{ $payment->student->admission_no }} · {{ $payment->student->academyClass?->name ?? 'No class' }}</small></span></div></td><td><span class="receipt-code">{{ $payment->receipt_no }}</span></td><td>{{ $payment->paid_at->timezone('Asia/Karachi')->format('d M Y') }}</td><td><span class="method-tag">{{ Str::headline($payment->method) }}</span></td><td class="align-right amount-cell">₨ {{ number_format((float) $payment->amount, 0) }}</td></tr>
+            @empty<tr><td colspan="5"><div class="table-empty"><span>₨</span><strong>No receipts recorded yet</strong><small>Once you record a payment, it will appear here.</small></div></td></tr>@endforelse
+            </tbody></table></div>
+        </article>
+        @endif
+    </div>
+
+    <aside class="dashboard-secondary-column">
+        @if ($features['attendance'])
+        <article class="workspace-card attendance-card">
+            <div class="workspace-card-heading"><div><span class="section-eyebrow">ACADEMIC DAY</span><h2>Attendance today</h2><p>{{ now()->timezone('Asia/Karachi')->format('d M Y') }}</p></div><a class="round-arrow" href="{{ route('modules.index', 'attendance') }}" aria-label="Open attendance">↗</a></div>
+            <div class="attendance-summary"><div class="attendance-gauge" style="--attendance-rate: {{ $attendanceRate }}%"><div><strong>{{ $attendanceTotal ? $attendanceRate.'%' : '—' }}</strong><small>present</small></div></div><div class="attendance-legend"><div><i class="legend-present"></i><span>Present</span><strong>{{ number_format($attendancePresent) }}</strong></div><div><i class="legend-absent"></i><span>Absent</span><strong>{{ number_format((int) ($attendanceToday['absent'] ?? 0)) }}</strong></div><div><i class="legend-leave"></i><span>Leave / other</span><strong>{{ number_format((int) ($attendanceToday['leave'] ?? 0)) }}</strong></div></div></div>
+            @if ($attendanceTotal === 0)<p class="attendance-empty">No attendance has been marked today.</p>@endif
+            <a class="button button-dark full-button" href="{{ route('modules.create', 'attendance') }}">＋ Mark attendance</a>
+        </article>
+        @endif
+
+        @if ($features['inquiries'] || $features['accounts'])
+        <article class="workspace-card pulse-card"><div class="workspace-card-heading"><div><span class="section-eyebrow">CAMPUS PULSE</span><h2>This month</h2></div><span class="pulse-dot"></span></div>
+            @if ($features['inquiries'])<a class="pulse-row" href="{{ route('modules.index', 'inquiries') }}"><span class="pulse-icon pulse-admissions">↗</span><span><small>Open inquiries</small><strong>{{ number_format($stats['inquiries']) }}</strong></span><b>→</b></a>@endif
+            @if ($features['accounts'])<div class="pulse-row"><span class="pulse-icon pulse-income">＋</span><span><small>Other income</small><strong>₨ {{ number_format((float) $stats['income']) }}</strong></span></div><div class="pulse-row"><span class="pulse-icon pulse-expense">−</span><span><small>Expenses</small><strong>₨ {{ number_format((float) $stats['expenses']) }}</strong></span></div><div class="pulse-net"><span>Net ledger balance</span><strong class="{{ ((float) $stats['income'] - (float) $stats['expenses']) < 0 ? 'text-negative' : '' }}">₨ {{ number_format((float) $stats['income'] - (float) $stats['expenses']) }}</strong></div>@endif
+        </article>
+        @endif
+
+        <article class="workspace-card shortcuts-card"><div class="workspace-card-heading"><div><span class="section-eyebrow">GET THINGS DONE</span><h2>Quick access</h2></div></div><div class="shortcut-grid">
+            @if ($features['students'])<a href="{{ route('modules.index', 'students') }}"><span class="shortcut-icon">♙</span><span>Students<small>Directory</small></span><b>↗</b></a>@endif
+            @if (auth()->user()->hasFeature('fees.invoices'))<a href="{{ route('modules.index', 'fees') }}"><span class="shortcut-icon">▤</span><span>Fee desk<small>Bills & balances</small></span><b>↗</b></a>@endif
+            @if ($features['attendance'])<a href="{{ route('modules.index', 'attendance') }}"><span class="shortcut-icon">◷</span><span>Attendance<small>Daily register</small></span><b>↗</b></a>@endif
+            @if (auth()->user()->hasFeature('exams'))<a href="{{ route('modules.index', 'exams') }}"><span class="shortcut-icon">✎</span><span>Exams & results<small>Assessments</small></span><b>↗</b></a>@endif
+            @if ($features['accounts'])<a href="{{ route('modules.index', 'accounts') }}"><span class="shortcut-icon">₨</span><span>Accounts<small>Income & expenses</small></span><b>↗</b></a>@endif
+            @if ($features['reports'])<a href="{{ route('reports') }}"><span class="shortcut-icon">▥</span><span>Reports<small>Academy insights</small></span><b>↗</b></a>@endif
+        </div></article>
+    </aside>
 </section>
 @endsection

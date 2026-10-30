@@ -17,13 +17,14 @@
         <div class="nav-label">Workspace</div>
         <nav class="nav-list">
             <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span>▦</span>Overview</a>
+            @if (collect(['inquiries', 'students', 'classes'])->contains(fn ($feature) => auth()->user()->hasFeature($feature)))<div class="nav-section-label">Academy</div>@endif
             @foreach (['inquiries', 'students', 'classes'] as $slug)
                 @if (auth()->user()->hasFeature(config('academy_access.module_features.'.$slug)))
                     @php($module = config('academy.modules.'.$slug))
-                    <a class="nav-link {{ request()->routeIs('modules.*') && request()->route('module') === $slug ? 'active' : '' }}" href="{{ route('modules.index', $slug) }}"><span>{{ $module['icon'] }}</span>{{ $module['label'] }}</a>
+                    <a class="nav-link {{ (request()->routeIs('modules.*') && request()->route('module') === $slug) || ($slug === 'students' && request()->routeIs('students.workspace')) ? 'active' : '' }}" href="{{ route('modules.index', $slug) }}"><span>{{ $module['icon'] }}</span>{{ $module['label'] }}</a>
                 @endif
             @endforeach
-            @php($feeMenuOpen = request()->routeIs('reports', 'fees.*', 'fee-heads.*') || (request()->routeIs('modules.*') && in_array(request()->route('module'), ['fees', 'payments', 'students'], true)))
+            @php($feeMenuOpen = request()->routeIs('reports', 'fees.*', 'fee-heads.*', 'students.workspace') || (request()->routeIs('modules.*') && in_array(request()->route('module'), ['fees', 'payments', 'students'], true)))
             @if (collect(['fees.invoices', 'fees.collect', 'fees.receipts', 'fees.single', 'fees.bulk', 'fees.modify', 'fees.monthly_students', 'fees.defaulters', 'fees.reports.pending', 'fees.reports.collection_date', 'fees.reports.collection_month', 'fees.reports.summary_date', 'fees.reports.recovery', 'fees.reports.adjust', 'fee_heads.class', 'fee_heads.academy', 'fee_heads.student'])->contains(fn ($feature) => auth()->user()->hasFeature($feature)))
             <details class="nav-group" @if ($feeMenuOpen) open @endif>
                 <summary class="nav-link {{ $feeMenuOpen ? 'active' : '' }}"><span>▤</span>Fee <span class="nav-chevron">⌄</span></summary>
@@ -52,6 +53,7 @@
                 </div>
             </details>
             @endif
+            @if (collect(['attendance', 'exams', 'results', 'staff', 'accounts', 'messages'])->contains(fn ($feature) => auth()->user()->hasFeature($feature)))<div class="nav-section-label">Operations</div>@endif
             @foreach (['attendance', 'exams', 'results', 'staff', 'accounts', 'messages'] as $slug)
                 @if (auth()->user()->hasFeature(config('academy_access.module_features.'.$slug)))
                     @php($module = config('academy.modules.'.$slug))
@@ -61,12 +63,12 @@
             @if (auth()->user()->hasFeature('reports.dashboard'))<a class="nav-link {{ request()->routeIs('reports') && ! request()->query('fee_report') ? 'active' : '' }}" href="{{ route('reports') }}"><span>▥</span>Reports</a>@endif
         </nav>
         <div class="sidebar-bottom">
-            <div class="support-box"><strong>Made for your academy</strong><p>Pakistan-ready student, fee and attendance records.</p><span>PKR · Asia/Karachi</span></div>
+            <div class="support-box"><span class="support-orbit">✳</span><strong>Built for your campus</strong><p>Admissions, learning and accounts in one workspace.</p><span>PKR <i>·</i> Asia/Karachi</span></div>
             <div class="user-card">@if (auth()->user()->photo_path)<img class="user-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="user-avatar">{{ collect(explode(' ', auth()->user()->name))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode('') }}</div>@endif<div class="user-copy"><strong>{{ auth()->user()->name }}</strong><small>{{ ucfirst(str_replace('_', ' ', auth()->user()->role ?? 'admin')) }}</small></div><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout" title="Sign out" aria-label="Sign out">↗</button></form></div>
         </div>
     </aside>
     <main class="main-area">
-        <header class="topbar"><button class="menu-toggle" id="menuToggle" aria-label="Open navigation">☰</button><div class="crumb">Academy workspace <span>/</span> <strong>{{ $title ?? 'Dashboard' }}</strong></div><div class="topbar-right"><span class="campus-chip">@if (auth()->user()->academy?->logo_path)<img class="campus-logo" src="{{ asset('storage/'.auth()->user()->academy->logo_path) }}" alt="">@else⌖ @endif {{ auth()->user()->academy?->name ?? 'Academy' }}</span><span class="top-date">{{ now()->timezone('Asia/Karachi')->format('D, d M Y') }}</span>@if (auth()->user()->photo_path)<img class="tiny-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="tiny-avatar">{{ collect(explode(' ', auth()->user()->name))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode('') }}</div>@endif</div></header>
+        <header class="topbar"><button class="menu-toggle" id="menuToggle" aria-label="Open navigation">☰</button><div class="topbar-title"><span class="topbar-kicker">ACADEMY WORKSPACE</span><div class="crumb"><strong>{{ $title ?? 'Dashboard' }}</strong><span class="crumb-date">{{ now()->timezone('Asia/Karachi')->format('l · d M Y') }}</span></div></div><div class="topbar-right"><span class="campus-chip">@if (auth()->user()->academy?->logo_path)<img class="campus-logo" src="{{ asset('storage/'.auth()->user()->academy->logo_path) }}" alt="">@else<span class="campus-pin">⌖</span>@endif <b>{{ auth()->user()->academy?->name ?? 'Academy' }}</b></span>@if (auth()->user()->photo_path)<img class="tiny-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="tiny-avatar">{{ collect(explode(' ', auth()->user()->name))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode('') }}</div>@endif</div></header>
         <div class="page-content">
             @if (session('success'))<div class="flash success">✓ {{ session('success') }}</div>@endif
             @if ($errors->any())<div class="flash error">Please check the form and correct the highlighted details.</div>@endif

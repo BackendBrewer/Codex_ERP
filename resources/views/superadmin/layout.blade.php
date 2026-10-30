@@ -12,20 +12,20 @@
 </head>
 <body>
 <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <a class="brand" href="{{ route('superadmin.academies') }}">
             <span class="brand-mark">M</span>
             <span><strong>MSZ ERP</strong><small>SYSTEM CONTROL</small></span>
         </a>
         <div class="nav-label">Platform</div>
         <nav class="nav-list">
-            <a class="nav-link active" href="{{ route('superadmin.academies') }}"><span>▦</span>Academies</a>
+            <a class="nav-link active" href="{{ route('superadmin.academies') }}"><span>▦</span>Academies <b class="nav-count">{{ \App\Models\Academy::query()->count() }}</b></a>
         </nav>
         <div class="sidebar-bottom">
             <div class="support-box">
-                <strong>Super Admin</strong>
-                <p>Manage academy accounts and their administrators.</p>
-                <span>Platform access only</span>
+                <span class="support-orbit">✳</span><strong>Platform control</strong>
+                <p>Manage academy accounts and admin permissions from here.</p>
+                <span>SUPER ADMIN <i>·</i> SECURE ACCESS</span>
             </div>
             <div class="user-card">
                 @if (auth()->user()->photo_path)<img class="user-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="user-avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</div>@endif
@@ -42,10 +42,10 @@
     </aside>
     <main class="main-area">
         <header class="topbar">
-            <div class="crumb">Platform <span>/</span> <strong>{{ $title ?? 'Academies' }}</strong></div>
+            <button class="menu-toggle" id="menuToggle" aria-label="Open navigation">☰</button><div class="topbar-title"><span class="topbar-kicker">PLATFORM CONTROL</span><div class="crumb"><strong>{{ $title ?? 'Academies' }}</strong><span class="crumb-date">{{ now()->timezone('Asia/Karachi')->format('l · d M Y') }}</span></div></div>
             <div class="topbar-right">
                 <span class="campus-chip">Super Admin</span>
-                <span class="top-date">{{ now()->timezone('Asia/Karachi')->format('D, d M Y') }}</span>
+                <span class="campus-chip"><span class="campus-pin">✳</span><b>MSZ Platform</b></span>
             </div>
         </header>
         <div class="page-content">
@@ -61,5 +61,7 @@
         </div>
     </main>
 </div>
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+<script src="{{ asset('js/academy.js') }}" defer></script>
 </body>
 </html>

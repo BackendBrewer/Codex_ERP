@@ -14,12 +14,38 @@ use Illuminate\View\View;
 
 class AcademyController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $academies = Academy::query()->with('administrator')->withCount('users')->orderBy('name')->paginate(20);
-        $activeCount = Academy::query()->where('is_active', true)->count();
+        $search = trim((string) $request->query('q', ''));
+        $hasSearch = $search !== '';
+        $sort = in_array($request->query('sort'), ['name', 'city', 'province', 'contact_email', 'is_active'], true) ? (string) $request->query('sort') : 'name';
+        $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
+        $query = Academy::query()->with('administrator')->withCount('users')
+            ->when($hasSearch, fn ($builder) => $builder->where(function ($filter) use ($search): void {
+                $filter->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('city', 'like', '%'.$search.'%')
+                    ->orWhere('province', 'like', '%'.$search.'%')
+                    ->orWhere('contact_email', 'like', '%'.$search.'%')
+                    ->orWhere('contact_phone', 'like', '%'.$search.'%')
+                    ->orWhereHas('administrator', fn ($admin) => $admin->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%'));
+            }))
+            ->when(! $hasSearch, fn ($builder) => $builder->whereRaw('1 = 0'))
+            ->orderBy($sort, $direction);
+        if ($request->boolean('print')) {
+            abort_unless($hasSearch, 422, 'Search academies before printing.');
+            $academies = $query->get();
 
-        return view('superadmin.academies.index', compact('academies', 'activeCount'));
+            return view('documents.academies-print', compact('academies', 'search'));
+        }
+        $academies = $query->paginate(20)->withQueryString();
+        $activeCount = (clone $query)->reorder()->where('is_active', true)->count();
+        $academyChoices = Academy::query()->with('administrator')->orderBy('name')->get()->map(fn (Academy $academy): array => [
+            'value' => (string) $academy->id,
+            'query' => $academy->name,
+            'label' => collect([$academy->name, $academy->city, $academy->province, $academy->administrator?->name, $academy->administrator?->email])->filter()->unique()->implode(' · '),
+        ]);
+
+        return view('superadmin.academies.index', compact('academies', 'activeCount', 'search', 'hasSearch', 'sort', 'direction', 'academyChoices'));
     }
 
     public function create(): View

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AcademyModuleController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SuperAdmin\AcademyController;
 use Illuminate\Support\Facades\Route;
@@ -11,14 +12,19 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1')->name('login.store');
 });
 
-Route::middleware('auth')->group(function (): void {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-    Route::get('/', function () {
+Route::get('/', function () {
+    if (auth()->check()) {
         return auth()->user()->isSuperAdmin()
             ? redirect()->route('superadmin.academies')
             : redirect()->route('dashboard');
-    })->name('home');
+    }
+
+    return view('welcome', ['recaptchaSiteKey' => config('services.recaptcha.site_key')]);
+})->name('home');
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
+
+Route::middleware('auth')->group(function (): void {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::middleware('role:super_admin')->prefix('superadmin')->name('superadmin.')->group(function (): void {
         Route::get('/academies', [AcademyController::class, 'index'])->name('academies');
@@ -38,6 +44,10 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/inquiries/{id}/admit', [AcademyModuleController::class, 'admitInquiry'])->whereNumber('id')->name('inquiries.admit');
         Route::get('/receipts/{id}/print', [AcademyModuleController::class, 'printReceipt'])->whereNumber('id')->name('receipts.print');
         Route::get('/fee-challans/{id}/print', [AcademyModuleController::class, 'printChallan'])->whereNumber('id')->name('challans.print');
+        Route::post('/fee-challans/{id}/adjust', [AcademyModuleController::class, 'adjustFeeBill'])->whereNumber('id')->name('challans.adjust');
+        Route::get('/students/{id}/workspace', [AcademyModuleController::class, 'studentWorkspace'])->whereNumber('id')->name('students.workspace');
+        Route::get('/students/{id}/card', [AcademyModuleController::class, 'printStudentCard'])->whereNumber('id')->name('students.card');
+        Route::get('/{module}/print', [AcademyModuleController::class, 'index'])->whereIn('module', array_keys(config('academy.modules')))->name('modules.print');
         Route::get('/fee-heads/{scope}', [AcademyModuleController::class, 'feeHeads'])->whereIn('scope', ['class', 'academy', 'student'])->name('fee-heads.index');
         Route::post('/fee-heads/{scope}', [AcademyModuleController::class, 'storeFeeHead'])->whereIn('scope', ['class', 'academy', 'student'])->name('fee-heads.store');
         Route::put('/fee-heads/{scope}/{id}', [AcademyModuleController::class, 'updateFeeHead'])->whereIn('scope', ['class', 'academy', 'student'])->whereNumber('id')->name('fee-heads.update');
