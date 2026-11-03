@@ -20,6 +20,7 @@
         <div class="nav-label">Platform</div>
         <nav class="nav-list">
             <a class="nav-link active" href="{{ route('superadmin.academies') }}"><span>▦</span>Academies <b class="nav-count">{{ \App\Models\Academy::query()->count() }}</b></a>
+            <a class="nav-link {{ request()->routeIs('superadmin.change-requests.*') ? 'active' : '' }}" href="{{ route('superadmin.change-requests.index') }}"><span>✉</span>Academy requests <b class="nav-count">{{ \App\Models\AcademyChangeRequest::query()->whereIn('status', ['open', 'in_review'])->count() }}</b></a>
         </nav>
         <div class="sidebar-bottom">
             <div class="support-box">
@@ -28,11 +29,7 @@
                 <span>SUPER ADMIN <i>·</i> SECURE ACCESS</span>
             </div>
             <div class="user-card">
-                @if (auth()->user()->photo_path)<img class="user-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="user-avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</div>@endif
-                <div class="user-copy">
-                    <strong>{{ auth()->user()->name }}</strong>
-                    <small>Super Administrator</small>
-                </div>
+                <a class="user-profile-link" href="{{ route('profile.show') }}">@if (auth()->user()->photo_path)<img class="user-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="user-avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</div>@endif<div class="user-copy"><strong>{{ auth()->user()->name }}</strong><small>My profile</small></div></a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="logout" title="Sign out" aria-label="Sign out">↗</button>

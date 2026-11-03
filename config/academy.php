@@ -51,7 +51,7 @@ return [
         ],
         'payments' => [
             'label' => 'Fee receipts', 'singular' => 'Fee receipt', 'icon' => '₨', 'model' => FeePayment::class,
-            'columns' => ['receipt_no' => 'Receipt #', 'student.admission_no' => 'Admission ID', 'student.name' => 'Student', 'amount' => 'Received (PKR)', 'paid_at' => 'Paid at', 'method' => 'Method'], 'with' => ['student', 'invoice'], 'searchable' => ['receipt_no', 'student.name', 'student.admission_no', 'student.guardian_phone', 'invoice.invoice_no', 'method'],
+            'columns' => ['receipt_no' => 'Receipt #', 'student.admission_no' => 'Admission ID', 'student.name' => 'Student', 'amount' => 'Received (PKR)', 'paid_at' => 'Paid at', 'method' => 'Method'], 'with' => ['student.academyClass', 'invoice'], 'searchable' => ['receipt_no', 'student.name', 'student.admission_no', 'student.guardian_phone', 'invoice.invoice_no', 'method'],
             'fields' => ['fee_invoice_id' => ['label' => 'Student bill', 'type' => 'select', 'source' => 'invoices', 'required' => true, 'hint' => 'Choose the student and month from this list. Their remaining balance will appear automatically.'], 'amount' => ['label' => 'Amount received (PKR)', 'type' => 'number', 'required' => true, 'hint' => 'The balance is filled in for you. Enter a smaller amount if this is a part payment.'], 'paid_at' => ['label' => 'Date payment was received', 'type' => 'datetime-local', 'required' => true], 'method' => ['label' => 'How was it paid?', 'type' => 'select', 'options' => ['cash' => 'Cash', 'bank' => 'Bank transfer', 'easypaisa' => 'Easypaisa', 'jazzcash' => 'JazzCash', 'cheque' => 'Cheque'], 'required' => true]],
         ],
         'attendance' => [

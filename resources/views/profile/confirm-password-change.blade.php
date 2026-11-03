@@ -1,0 +1,3 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Verify password change · MSZ ERP</title><link rel="stylesheet" href="{{ asset('css/academy.css') }}"></head>
+<body class="secure-action-page"><main class="secure-action-card"><span class="fee-kicker">ACCOUNT SECURITY</span><h1>Confirm password change</h1><p>Confirm that you want to change the password for <b>{{ $user->email }}</b>. Your new password will be activated after this step.</p><form method="POST" action="{{ request()->fullUrl() }}">@csrf<button class="btn-primary" type="submit">Confirm and email my sign-in link</button></form><a href="{{ route('login') }}">Cancel and return to sign in</a></main></body></html>

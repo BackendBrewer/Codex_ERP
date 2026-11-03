@@ -63,6 +63,7 @@ class AcademyController extends Controller
             'province' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:1000'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'letterhead' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'admin_name' => ['required', 'string', 'max:255'],
             'admin_email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'admin_password' => ['required', 'string', 'min:12', 'confirmed'],
@@ -73,6 +74,7 @@ class AcademyController extends Controller
 
         DB::transaction(function () use ($data, $request): void {
             $logoPath = $request->file('logo')?->store('academy-logos', 'public');
+            $letterheadPath = $request->file('letterhead')?->store('academy-letterheads', 'public');
             $adminPhotoPath = $request->file('admin_photo')?->store('academy-admins', 'public');
             $academy = Academy::query()->create([
                 'name' => $data['name'],
@@ -84,6 +86,7 @@ class AcademyController extends Controller
                 'address' => $data['address'] ?? null,
                 'is_active' => true,
                 'logo_path' => $logoPath,
+                'letterhead_path' => $letterheadPath,
                 'enabled_features' => array_values(array_unique($data['enabled_features'] ?? [])),
             ]);
 
@@ -116,6 +119,7 @@ class AcademyController extends Controller
             'province' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:1000'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'letterhead' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'admin_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'enabled_features' => ['nullable', 'array'],
             'enabled_features.*' => ['string', Rule::in($this->featureKeys())],
@@ -123,13 +127,20 @@ class AcademyController extends Controller
         $data['enabled_features'] = array_values(array_unique($data['enabled_features'] ?? []));
         $data['slug'] = $this->uniqueSlug($data['name'], $academy->id);
         $oldLogoPath = $academy->logo_path;
+        $oldLetterheadPath = $academy->letterhead_path;
         if ($request->hasFile('logo')) {
             $data['logo_path'] = $request->file('logo')->store('academy-logos', 'public');
         }
-        unset($data['logo'], $data['admin_photo']);
+        if ($request->hasFile('letterhead')) {
+            $data['letterhead_path'] = $request->file('letterhead')->store('academy-letterheads', 'public');
+        }
+        unset($data['logo'], $data['letterhead'], $data['admin_photo']);
         $academy->update($data);
         if ($request->hasFile('logo') && $oldLogoPath !== null) {
             Storage::disk('public')->delete($oldLogoPath);
+        }
+        if ($request->hasFile('letterhead') && $oldLetterheadPath !== null) {
+            Storage::disk('public')->delete($oldLetterheadPath);
         }
 
         $administrator = $academy->administrator;

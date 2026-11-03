@@ -11,7 +11,7 @@ class Academy extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'contact_email', 'contact_phone', 'city', 'province', 'address', 'is_active', 'logo_path', 'enabled_features'];
+    protected $fillable = ['name', 'slug', 'contact_email', 'contact_phone', 'city', 'province', 'address', 'is_active', 'logo_path', 'letterhead_path', 'enabled_features'];
 
     protected function casts(): array
     {

@@ -68,7 +68,7 @@
         </nav>
         <div class="sidebar-bottom">
             <div class="support-box"><span class="support-orbit">✳</span><strong>Built for your campus</strong><p>Admissions, learning and accounts in one workspace.</p><span>PKR <i>·</i> Asia/Karachi</span></div>
-            <div class="user-card">@if (auth()->user()->photo_path)<img class="user-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="user-avatar">{{ collect(explode(' ', auth()->user()->name))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode('') }}</div>@endif<div class="user-copy"><strong>{{ auth()->user()->name }}</strong><small>{{ ucfirst(str_replace('_', ' ', auth()->user()->role ?? 'admin')) }}</small></div><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout" title="Sign out" aria-label="Sign out">↗</button></form></div>
+            <div class="user-card"><a class="user-profile-link" href="{{ route('profile.show') }}">@if (auth()->user()->photo_path)<img class="user-avatar" src="{{ asset('storage/'.auth()->user()->photo_path) }}" alt="">@else<div class="user-avatar">{{ collect(explode(' ', auth()->user()->name))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode('') }}</div>@endif<div class="user-copy"><strong>{{ auth()->user()->name }}</strong><small>My profile</small></div></a><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout" title="Sign out" aria-label="Sign out">↗</button></form></div>
         </div>
     </aside>
     <main class="main-area">

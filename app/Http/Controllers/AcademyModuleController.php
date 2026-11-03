@@ -139,15 +139,16 @@ class AcademyModuleController extends Controller
             $classOptions = AcademyClass::query()->where('active', true)->orderBy('name')->get(['id', 'name', 'section']);
         }
         if ($module === 'fees') {
+            $balanceSummary = FeeInvoice::query()->withOpenBalanceSummary()->first();
             $feeStats = [
                 'billed' => (float) FeeInvoice::query()->where('status', '!=', 'waived')->sum(DB::raw('amount - discount + late_fee')),
                 'collected' => (float) FeePayment::query()->sum('amount'),
-                'outstanding' => FeeInvoice::query()->whereIn('status', ['unpaid', 'partial'])->withSum('payments as paid_total', 'amount')->get()->sum(fn (FeeInvoice $invoice): float => max(0, (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee - (float) $invoice->paid_total)),
-                'open_count' => FeeInvoice::query()->whereIn('status', ['unpaid', 'partial'])->count(),
+                'outstanding' => (float) ($balanceSummary?->outstanding_total ?? 0),
+                'open_count' => (int) ($balanceSummary?->open_count ?? 0),
             ];
         }
         if (in_array($module, ['fees', 'payments'], true)) {
-            $studentOptions = Student::query()->with('academyClass')->orderBy('name')->get(['id', 'admission_no', 'name', 'class_id', 'guardian_phone']);
+            $studentOptions = Student::query()->with('academyClass')->orderBy('name')->limit(300)->get(['id', 'admission_no', 'name', 'class_id', 'guardian_phone']);
         }
         $searchChoices = collect();
         if (in_array($module, array_keys(config('academy.modules')), true)) {
@@ -157,7 +158,7 @@ class AcademyModuleController extends Controller
                 default => $definition['searchable'][0] ?? null,
             };
             $choiceRelations = array_values(array_filter($definition['with'] ?? [], fn (string $relation): bool => $relation !== 'payments'));
-            $searchChoices = ($definition['model'])::query()->with($choiceRelations)->get()
+            $searchChoices = ($definition['model'])::query()->with($choiceRelations)->latest()->limit(300)->get()
                 ->map(function (Model $record) use ($definition, $preferredField): ?array {
                     $fields = $definition['searchable'];
                     $queryValue = $preferredField ? data_get($record, $preferredField) : null;
@@ -408,20 +409,22 @@ class AcademyModuleController extends Controller
         return redirect()->route('modules.index', 'students')->with('success', 'Inquiry admitted. A student profile was created with the selected class fee.');
     }
 
-    public function printReceipt(int $id): View
+    public function printReceipt(int $id, Request $request): View
     {
         $this->requireFeature('fees.receipts');
         $document = FeePayment::query()->with(['student.academyClass', 'invoice'])->findOrFail($id);
+        $academy = $request->user()->academy;
 
-        return view('documents.receipt', compact('document'));
+        return view('documents.receipt', compact('document', 'academy'));
     }
 
-    public function printChallan(int $id): View
+    public function printChallan(int $id, Request $request): View
     {
         $this->requireFeature('fees.invoices');
         $document = FeeInvoice::query()->with(['student.academyClass', 'payments'])->findOrFail($id);
+        $academy = $request->user()->academy;
 
-        return view('documents.challan', compact('document'));
+        return view('documents.challan', compact('document', 'academy'));
     }
 
     public function adjustFeeBill(int $id, Request $request): RedirectResponse
@@ -484,13 +487,22 @@ class AcademyModuleController extends Controller
         $canViewPayments = $user->hasFeature('fees.receipts') || $user->hasFeature('fees.collect');
         $canViewAttendance = $user->hasFeature('attendance');
         $canViewResults = $user->hasFeature('results');
-        $feeInvoices = $canViewFees ? $student->invoices()->with('payments')->latest('invoice_month')->get() : collect();
-        $feePayments = $feeInvoices->flatMap(fn (FeeInvoice $invoice): Collection => $invoice->payments)->sortByDesc('paid_at')->take(10)->values();
+        $feeInvoices = $canViewFees
+            ? $student->invoices()->withSum('payments as paid_total', 'amount')->withCount('payments')->latest('invoice_month')->paginate(20)->withQueryString()
+            : collect();
+        $feePayments = $canViewPayments
+            ? FeePayment::query()->where('student_id', $student->id)->latest('paid_at')->limit(10)->get()
+            : collect();
+        $paidTotal = '(SELECT COALESCE(SUM(fee_payments.amount), 0) FROM fee_payments WHERE fee_payments.fee_invoice_id = fee_invoices.id)';
+        $invoiceDue = '(fee_invoices.amount - fee_invoices.discount + fee_invoices.late_fee)';
+        $invoiceSummary = $canViewFees
+            ? $student->invoices()->selectRaw('COALESCE(SUM(CASE WHEN fee_invoices.status != ? THEN '.$invoiceDue.' ELSE 0 END), 0) AS billed_total, COALESCE(SUM('.$paidTotal.'), 0) AS paid_total, COALESCE(SUM(CASE WHEN fee_invoices.status != ? AND '.$invoiceDue.' > '.$paidTotal.' THEN '.$invoiceDue.' - '.$paidTotal.' ELSE 0 END), 0) AS due_total, COALESCE(SUM(CASE WHEN fee_invoices.status != ? AND '.$invoiceDue.' > '.$paidTotal.' THEN 1 ELSE 0 END), 0) AS open_count', ['waived', 'waived', 'waived'])->first()
+            : null;
         $feeSummary = [
-            'billed' => $feeInvoices->reject(fn (FeeInvoice $invoice): bool => $invoice->status === 'waived')->sum(fn (FeeInvoice $invoice): float => (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee),
-            'paid' => $feeInvoices->sum(fn (FeeInvoice $invoice): float => (float) $invoice->payments->sum('amount')),
-            'due' => $feeInvoices->sum(fn (FeeInvoice $invoice): float => $invoice->status === 'waived' ? 0 : max(0, (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee - (float) $invoice->payments->sum('amount'))),
-            'open_count' => $feeInvoices->filter(fn (FeeInvoice $invoice): bool => $invoice->status !== 'waived' && (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee > (float) $invoice->payments->sum('amount'))->count(),
+            'billed' => (float) ($invoiceSummary?->billed_total ?? 0),
+            'paid' => (float) ($invoiceSummary?->paid_total ?? 0),
+            'due' => (float) ($invoiceSummary?->due_total ?? 0),
+            'open_count' => (int) ($invoiceSummary?->open_count ?? 0),
         ];
         $attendanceSummary = $canViewAttendance
             ? $student->attendanceRecords()->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status')
@@ -518,7 +530,7 @@ class AcademyModuleController extends Controller
         $income = AccountEntry::query()->where('type', 'income')->whereBetween('entry_date', [$start, $end])->sum('amount');
         $expenses = AccountEntry::query()->where('type', 'expense')->whereBetween('entry_date', [$start, $end])->sum('amount');
         $collected = FeePayment::query()->whereBetween('paid_at', [$start, $end])->sum('amount');
-        $outstanding = FeeInvoice::query()->whereIn('status', ['unpaid', 'partial'])->selectRaw('COALESCE(SUM(amount - discount + late_fee), 0) as total')->value('total') ?? 0;
+        $outstanding = (float) (FeeInvoice::query()->withOpenBalanceSummary()->value('outstanding_total') ?? 0);
         $attendance = AttendanceRecord::query()->whereDate('attendance_date', today())->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
         $feeReport = in_array($request->query('fee_report'), ['pending', 'date', 'month', 'summary', 'recovery', 'defaulters', 'adjust'], true) ? $request->query('fee_report') : null;
         if ($feeReport === 'defaulters' && $request->filled('as_of')) {
@@ -739,16 +751,9 @@ class AcademyModuleController extends Controller
         $stats = [];
 
         if ($showBalanceSummary) {
-            $openInvoices = FeeInvoice::query()
-                ->whereIn('status', ['unpaid', 'partial'])
-                ->withSum('payments as paid_total', 'amount')
-                ->get(['id', 'amount', 'discount', 'late_fee']);
-
-            $stats['open_bills'] = $openInvoices->count();
-            $stats['outstanding'] = $openInvoices->sum(fn (FeeInvoice $invoice): float => max(
-                0,
-                (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee - (float) $invoice->paid_total,
-            ));
+            $balanceSummary = FeeInvoice::query()->withOpenBalanceSummary()->first();
+            $stats['open_bills'] = (int) ($balanceSummary?->open_count ?? 0);
+            $stats['outstanding'] = (float) ($balanceSummary?->outstanding_total ?? 0);
         }
 
         if ($showCollectionSummary) {
@@ -778,13 +783,18 @@ class AcademyModuleController extends Controller
             ->where(function ($query) use ($month): void {
                 $query->whereNull('fee_adjust_month')->orWhere('fee_adjust_month', '<=', $month);
             })->get();
+        $existingStudentIds = FeeInvoice::query()
+            ->whereDate('invoice_month', $month)
+            ->whereIn('student_id', $students->modelKeys())
+            ->pluck('student_id')
+            ->map(fn ($studentId): int => (int) $studentId)
+            ->all();
         $created = 0;
         $activeHeads = FeeHead::query()->where('active', true)->get();
 
-        DB::transaction(function () use ($students, $month, $data, $activeHeads, &$created): void {
+        DB::transaction(function () use ($students, $existingStudentIds, $month, $data, $activeHeads, &$created): void {
             foreach ($students as $student) {
-                $exists = FeeInvoice::query()->where('student_id', $student->id)->whereDate('invoice_month', $month)->exists();
-                if ($exists) {
+                if (in_array((int) $student->id, $existingStudentIds, true)) {
                     continue;
                 }
                 $breakdown = $this->feeBreakdown($student, $activeHeads);

@@ -4,6 +4,8 @@ use App\Http\Controllers\AcademyModuleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SuperAdmin\AcademyChangeRequestController;
 use App\Http\Controllers\SuperAdmin\AcademyController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,10 +25,27 @@ Route::get('/', function () {
 })->name('home');
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
 
+Route::get('/secure/password-change/{token}', [ProfileController::class, 'showPasswordChangeConfirmation'])->middleware(['signed', 'throttle:10,1'])->name('profile.password.verify.show');
+Route::post('/secure/password-change/{token}', [ProfileController::class, 'confirmPasswordChange'])->middleware(['signed', 'throttle:5,1'])->name('profile.password.verify.confirm');
+Route::get('/secure/sign-in/{token}', [ProfileController::class, 'showLoginLink'])->middleware(['signed', 'throttle:10,1'])->name('profile.login-link.show');
+Route::post('/secure/sign-in/{token}', [ProfileController::class, 'consumeLoginLink'])->middleware(['signed', 'throttle:5,1'])->name('profile.login-link.consume');
+
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+    Route::middleware('role:admin,super_admin')->group(function (): void {
+        Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    });
+
+    Route::middleware('role:admin')->group(function (): void {
+        Route::post('/profile/password', [ProfileController::class, 'sendPasswordChangeVerification'])->middleware('throttle:5,1')->name('profile.password.send-verification');
+        Route::post('/profile/change-requests', [ProfileController::class, 'requestAcademyChange'])->middleware('throttle:5,1')->name('profile.change-requests.store');
+    });
+
     Route::middleware('role:super_admin')->prefix('superadmin')->name('superadmin.')->group(function (): void {
+        Route::get('/change-requests', [AcademyChangeRequestController::class, 'index'])->name('change-requests.index');
+        Route::patch('/change-requests/{changeRequest}', [AcademyChangeRequestController::class, 'update'])->name('change-requests.update');
         Route::get('/academies', [AcademyController::class, 'index'])->name('academies');
         Route::get('/academies/create', [AcademyController::class, 'create'])->name('academies.create');
         Route::post('/academies', [AcademyController::class, 'store'])->name('academies.store');

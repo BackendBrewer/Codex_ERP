@@ -1,0 +1,3 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Secure sign-in · MSZ ERP</title><link rel="stylesheet" href="{{ asset('css/academy.css') }}"></head>
+<body class="secure-action-page"><main class="secure-action-card"><span class="fee-kicker">ONE-TIME SIGN-IN</span><h1>Sign in to MSZ ERP</h1><p>This secure link will sign in <b>{{ $user->email }}</b> to the academy workspace. It can only be used once.</p><form method="POST" action="{{ request()->fullUrl() }}">@csrf<button class="btn-primary" type="submit">Sign in securely</button></form><a href="{{ route('login') }}">Cancel and go to the login page</a></main></body></html>
