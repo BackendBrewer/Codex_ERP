@@ -233,7 +233,7 @@ class AcademyModuleController extends Controller
         if ($module === 'fees') {
             $data['discount'] = $data['discount'] ?? 0;
             $data['late_fee'] = $data['late_fee'] ?? 0;
-            $data['status'] = $data['status'] ?: 'unpaid';
+            $data['status'] = 'unpaid';
             $duplicate = FeeInvoice::query()->where('student_id', $data['student_id'])->whereDate('invoice_month', $data['invoice_month'])->exists();
             if ($duplicate) {
                 throw ValidationException::withMessages(['invoice_month' => 'This student already has a fee bill for the selected month.']);
@@ -245,7 +245,8 @@ class AcademyModuleController extends Controller
             $data['fee_head_details'] = $breakdown['items'];
         }
 
-        DB::transaction(function () use ($module, $definition, $data, $request): void {
+        $createdPayment = null;
+        DB::transaction(function () use ($module, $definition, $data, $request, &$createdPayment): void {
             if ($module === 'attendance') {
                 AttendanceRecord::query()->updateOrCreate(
                     ['student_id' => $data['student_id'], 'attendance_date' => $data['attendance_date']],
@@ -255,7 +256,7 @@ class AcademyModuleController extends Controller
                 return;
             }
             if ($module === 'payments') {
-                $this->recordPayment($data, $request);
+                $createdPayment = $this->recordPayment($data, $request);
 
                 return;
             }
@@ -284,13 +285,21 @@ class AcademyModuleController extends Controller
         });
 
         if ($module === 'payments') {
-            $destination = $request->user()->hasFeature('fees.receipts') ? route('modules.index', 'payments') : route('dashboard');
+            abort_unless($createdPayment instanceof FeePayment, 500, 'The payment receipt could not be opened.');
 
-            return redirect($destination)->with('success', 'Fee payment recorded successfully.');
+            return redirect()->route('receipts.print', $createdPayment->id);
         }
 
         if ($module === 'fees' && ! $request->user()->hasFeature('fees.invoices')) {
             return redirect()->route('dashboard')->with('success', $definition['singular'].' saved successfully.');
+        }
+
+        if ($module === 'fees') {
+            return redirect()->route('modules.index', [
+                'module' => 'fees',
+                'student_id' => $data['student_id'],
+                'month' => substr((string) $data['invoice_month'], 0, 7),
+            ])->with('success', 'Fee bill created. Record a payment separately when money is received.');
         }
 
         return redirect()->route('modules.index', $module)->with('success', $definition['singular'].' saved successfully.');
@@ -358,7 +367,7 @@ class AcademyModuleController extends Controller
         $this->authorizeModuleFeature($module, 'edit');
         $definition = $this->definition($module);
         $record = ($definition['model'])::query()->findOrFail($id);
-        abort_if($module === 'fees' && $record->payments()->exists(), 422, 'A challan with recorded receipts cannot be deleted. Edit its balance or keep the payment history.');
+        abort_if($module === 'fees' && $record->payments()->exists(), 422, 'A bill with recorded payments cannot be deleted. Edit its balance or keep the payment history.');
         $invoiceId = $module === 'payments' ? $record->fee_invoice_id : null;
         $photoPath = $module === 'students' ? $record->photo_path : null;
         $record->delete();
@@ -651,7 +660,7 @@ class AcademyModuleController extends Controller
         $data = $this->validateFeeHead($scope, $request);
         FeeHead::query()->create($data);
 
-        return redirect()->route('fee-heads.index', $scope)->with('success', 'Fee head added. It will be included in future bills for its selected scope.');
+        return redirect()->route('fee-heads.index', $scope)->with('success', 'Extra charge added. It will be included in future bills for the students it is assigned to.');
     }
 
     public function updateFeeHead(string $scope, int $id, Request $request): RedirectResponse
@@ -660,7 +669,7 @@ class AcademyModuleController extends Controller
         $head = FeeHead::query()->where('scope', $scope)->findOrFail($id);
         $head->update($this->validateFeeHead($scope, $request));
 
-        return redirect()->route('fee-heads.index', $scope)->with('success', 'Fee head updated. Existing challans keep their saved fee breakdown.');
+        return redirect()->route('fee-heads.index', $scope)->with('success', 'Extra charge updated. Existing bills keep their saved totals.');
     }
 
     public function deleteFeeHead(string $scope, int $id): RedirectResponse
@@ -668,7 +677,7 @@ class AcademyModuleController extends Controller
         $this->requireFeature('fee_heads.'.$scope);
         FeeHead::query()->where('scope', $scope)->findOrFail($id)->delete();
 
-        return redirect()->route('fee-heads.index', $scope)->with('success', 'Fee head removed. Previous challans are unchanged.');
+        return redirect()->route('fee-heads.index', $scope)->with('success', 'Extra charge removed. Previous bills are unchanged.');
     }
 
     public function bulkFeeForm(): View
@@ -704,6 +713,55 @@ class AcademyModuleController extends Controller
         $studentOptions = Student::query()->where('status', 'active')->with('academyClass')->orderBy('name')->get(['id', 'admission_no', 'name', 'father_name', 'class_id', 'guardian_phone']);
 
         return view('fees.monthly-students', compact('students', 'classes', 'search', 'studentId', 'studentOptions', 'classId', 'hasSearch', 'sort', 'direction'));
+    }
+
+    public function feeDesk(Request $request): View
+    {
+        $user = $request->user();
+        $features = [
+            'students' => $user->hasFeature('students'),
+            'monthly_students' => $user->hasFeature('fees.monthly_students'),
+            'single_bill' => $user->hasFeature('fees.single'),
+            'bulk_bills' => $user->hasFeature('fees.bulk'),
+            'view_bills' => $user->hasFeature('fees.invoices'),
+            'collect_payment' => $user->hasFeature('fees.collect'),
+            'view_receipts' => $user->hasFeature('fees.receipts'),
+            'pending_report' => $user->hasFeature('fees.reports.pending'),
+            'defaulters' => $user->hasFeature('fees.defaulters'),
+            'fee_heads_academy' => $user->hasFeature('fee_heads.academy'),
+            'fee_heads_class' => $user->hasFeature('fee_heads.class'),
+            'fee_heads_student' => $user->hasFeature('fee_heads.student'),
+        ];
+        abort_unless(in_array(true, $features, true), 403, 'Fee tools have not been enabled for your academy.');
+
+        $showBalanceSummary = $features['view_bills'] || $features['pending_report'] || $features['defaulters'];
+        $showCollectionSummary = $features['view_receipts'];
+        $stats = [];
+
+        if ($showBalanceSummary) {
+            $openInvoices = FeeInvoice::query()
+                ->whereIn('status', ['unpaid', 'partial'])
+                ->withSum('payments as paid_total', 'amount')
+                ->get(['id', 'amount', 'discount', 'late_fee']);
+
+            $stats['open_bills'] = $openInvoices->count();
+            $stats['outstanding'] = $openInvoices->sum(fn (FeeInvoice $invoice): float => max(
+                0,
+                (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee - (float) $invoice->paid_total,
+            ));
+        }
+
+        if ($showCollectionSummary) {
+            $stats['collected_this_month'] = (float) FeePayment::query()
+                ->whereBetween('paid_at', [now()->startOfMonth(), now()->endOfMonth()])
+                ->sum('amount');
+        }
+
+        $feeHeadScope = collect(['academy', 'class', 'student'])
+            ->first(fn (string $scope): bool => $features['fee_heads_'.$scope])
+            ?? null;
+
+        return view('fees.desk', compact('features', 'stats', 'feeHeadScope'));
     }
 
     public function generateBulkFees(Request $request): RedirectResponse
@@ -743,9 +801,18 @@ class AcademyModuleController extends Controller
             }
         });
 
-        $destination = $request->user()->hasFeature('fees.invoices') ? route('modules.index', 'fees') : route('dashboard');
+        $destination = $request->user()->hasFeature('fees.invoices')
+            ? route('modules.index', [
+                'module' => 'fees',
+                'month' => $data['invoice_month'],
+                'class_id' => $data['class_id'] ?? null,
+            ])
+            : route('fees.desk');
+        $message = $created > 0
+            ? $created.' fee bill(s) created. Existing bills for that month were left unchanged.'
+            : 'No new bills were needed. Existing bills for that month were left unchanged.';
 
-        return redirect($destination)->with('success', $created.' fee bill(s) generated. Existing bills for that month were skipped.');
+        return redirect($destination)->with('success', $message);
     }
 
     /** @return array<string, mixed> */
@@ -923,7 +990,7 @@ class AcademyModuleController extends Controller
         }
         if ($module === 'payments') {
             $invoice = FeeInvoice::query()->with('payments')->findOrFail($data['fee_invoice_id']);
-            abort_unless($invoice->student_id === (int) $data['student_id'], 422, 'The student selected does not match this challan.');
+            $data['student_id'] = $invoice->student_id;
             $due = (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee;
             $alreadyPaid = (float) $invoice->payments->sum('amount');
             if ($record instanceof FeePayment && (int) $record->fee_invoice_id === (int) $invoice->id) {
@@ -983,14 +1050,16 @@ class AcademyModuleController extends Controller
     }
 
     /** @param array<string, mixed> $data */
-    private function recordPayment(array $data, Request $request): void
+    private function recordPayment(array $data, Request $request): FeePayment
     {
         $invoice = FeeInvoice::query()->findOrFail($data['fee_invoice_id']);
         $data['collected_by'] = $request->user()->id;
-        FeePayment::query()->create($data);
+        $payment = FeePayment::query()->create($data);
         $due = (float) $invoice->amount - (float) $invoice->discount + (float) $invoice->late_fee;
         $paid = (float) $invoice->payments()->sum('amount');
         $invoice->update(['status' => $paid >= $due ? 'paid' : 'partial']);
+
+        return $payment;
     }
 
     private function syncInvoiceStatus(FeeInvoice $invoice): void

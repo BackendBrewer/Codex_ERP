@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/fees/bulk', [AcademyModuleController::class, 'bulkFeeForm'])->name('fees.bulk.form');
         Route::post('/fees/bulk', [AcademyModuleController::class, 'generateBulkFees'])->name('fees.bulk.generate');
         Route::get('/fees/monthly-students', [AcademyModuleController::class, 'monthlyFeeStudents'])->name('fees.monthly-students');
+        Route::get('/fee-desk', [AcademyModuleController::class, 'feeDesk'])->name('fees.desk');
         Route::post('/inquiries/{id}/admit', [AcademyModuleController::class, 'admitInquiry'])->whereNumber('id')->name('inquiries.admit');
         Route::get('/receipts/{id}/print', [AcademyModuleController::class, 'printReceipt'])->whereNumber('id')->name('receipts.print');
         Route::get('/fee-challans/{id}/print', [AcademyModuleController::class, 'printChallan'])->whereNumber('id')->name('challans.print');

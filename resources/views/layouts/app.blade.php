@@ -29,25 +29,29 @@
             <details class="nav-group" @if ($feeMenuOpen) open @endif>
                 <summary class="nav-link {{ $feeMenuOpen ? 'active' : '' }}"><span>▤</span>Fee <span class="nav-chevron">⌄</span></summary>
                 <div class="nav-sublist">
-                    @if (auth()->user()->hasFeature('fees.collect'))<a class="nav-sublink" href="{{ route('modules.create', 'payments') }}">Collect Fee</a>@endif
-                    @if (auth()->user()->hasFeature('fees.reports.pending'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'pending']) }}">Pending Balance Report</a>@endif
-                    @if (auth()->user()->hasFeature('fees.reports.collection_date'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'date']) }}">Fee Collection Detail By Date</a>@endif
-                    @if (auth()->user()->hasFeature('fees.reports.collection_month'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'month']) }}">Fee Collection Detail By Month</a>@endif
-                    @if (auth()->user()->hasFeature('fees.reports.summary_date'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'summary']) }}">Fee Collection Summary By Date</a>@endif
-                    @if (auth()->user()->hasFeature('fees.reports.recovery'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'recovery']) }}">Fee Recovery Report</a>@endif
-                    @if (auth()->user()->hasFeature('fees.invoices'))<a class="nav-sublink" href="{{ route('modules.index', 'fees') }}">Fee Desk / Bill List</a>@endif
-                    @if (auth()->user()->hasFeature('fees.receipts'))<a class="nav-sublink" href="{{ route('modules.index', 'payments') }}">Fee Receipts</a>@endif
-                    @if (auth()->user()->hasFeature('fees.monthly_students'))<a class="nav-sublink" href="{{ route('fees.monthly-students') }}">Monthly Fee List</a>@endif
-                    @if (auth()->user()->hasFeature('fees.defaulters'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'defaulters']) }}">Basic / Defaulters Fee List</a>@endif
-                    @if (auth()->user()->hasFeature('fees.single'))<a class="nav-sublink" href="{{ route('modules.create', 'fees') }}">Generate Single Fee Bill</a>@endif
-                    @if (auth()->user()->hasFeature('fees.bulk'))<a class="nav-sublink" href="{{ route('fees.bulk.form') }}">Generate Bulk Fee Bills</a>@endif
-                    @if (auth()->user()->hasFeature('fees.modify'))<a class="nav-sublink" href="{{ route('modules.index', 'fees') }}">Rollback / Modify Fee Bill</a>@endif
-                    @if (auth()->user()->hasFeature('fees.reports.adjust'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'adjust']) }}">Adjust Monthly Generated Fee Bills</a>@endif
-                    @if (auth()->user()->hasFeature('fee_heads.class') || auth()->user()->hasFeature('fee_heads.academy') || auth()->user()->hasFeature('fee_heads.student'))
-                    <details class="nav-group nested-nav-group" @if (request()->routeIs('fee-heads.*')) open @endif><summary class="nav-sublink">Manage Fee Heads <span class="nav-chevron">⌄</span></summary><div class="nav-sublist">
-                        @if (auth()->user()->hasFeature('fee_heads.class'))<a class="nav-sublink" href="{{ route('fee-heads.index', 'class') }}">Class / Section Wise</a>@endif
-                        @if (auth()->user()->hasFeature('fee_heads.academy'))<a class="nav-sublink" href="{{ route('fee-heads.index', 'academy') }}">School Wise</a>@endif
-                        @if (auth()->user()->hasFeature('fee_heads.student'))<a class="nav-sublink" href="{{ route('fee-heads.index', 'student') }}">Student Wise</a>@endif
+                    <a class="nav-sublink {{ request()->routeIs('fees.desk') ? 'active' : '' }}" href="{{ route('fees.desk') }}">Fee workspace</a>
+                    @if (auth()->user()->hasFeature('fees.collect'))<a class="nav-sublink {{ request()->routeIs('modules.create') && request()->route('module') === 'payments' ? 'active' : '' }}" href="{{ route('modules.create', 'payments') }}">Record a payment</a>@endif
+                    @if (auth()->user()->hasFeature('fees.invoices'))<a class="nav-sublink {{ request()->routeIs('modules.index') && request()->route('module') === 'fees' ? 'active' : '' }}" href="{{ route('modules.index', 'fees') }}">Find a bill</a>@endif
+                    @if (auth()->user()->hasFeature('fees.monthly_students') || auth()->user()->hasFeature('fees.receipts') || auth()->user()->hasFeature('fees.single') || auth()->user()->hasFeature('fees.bulk') || auth()->user()->hasFeature('fees.defaulters') || auth()->user()->hasFeature('fees.reports.pending') || auth()->user()->hasFeature('fees.reports.collection_date') || auth()->user()->hasFeature('fees.reports.collection_month') || auth()->user()->hasFeature('fees.reports.summary_date') || auth()->user()->hasFeature('fees.reports.recovery') || auth()->user()->hasFeature('fees.reports.adjust') || auth()->user()->hasFeature('fees.modify') || auth()->user()->hasFeature('fee_heads.class') || auth()->user()->hasFeature('fee_heads.academy') || auth()->user()->hasFeature('fee_heads.student'))
+                    <details class="nav-group nested-nav-group" @if (request()->routeIs('reports', 'fees.bulk.*', 'fees.monthly-students', 'fee-heads.*') || (request()->routeIs('modules.create') && in_array(request()->route('module'), ['fees', 'payments'], true))) open @endif><summary class="nav-sublink">More fee tools <span class="nav-chevron">⌄</span></summary><div class="nav-sublist">
+                        @if (auth()->user()->hasFeature('fees.single'))<a class="nav-sublink" href="{{ route('modules.create', 'fees') }}">Create one bill</a>@endif
+                        @if (auth()->user()->hasFeature('fees.bulk'))<a class="nav-sublink" href="{{ route('fees.bulk.form') }}">Create monthly bills</a>@endif
+                        @if (auth()->user()->hasFeature('fees.monthly_students'))<a class="nav-sublink" href="{{ route('fees.monthly-students') }}">Student fee list</a>@endif
+                        @if (auth()->user()->hasFeature('fees.receipts'))<a class="nav-sublink" href="{{ route('modules.index', 'payments') }}">Payment receipts</a>@endif
+                        @if (auth()->user()->hasFeature('fees.reports.pending'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'pending']) }}">Unpaid balances</a>@elseif (auth()->user()->hasFeature('fees.defaulters'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'defaulters']) }}">Unpaid balances</a>@endif
+                        @if (auth()->user()->hasFeature('fees.reports.collection_date'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'date']) }}">Collections by date</a>@endif
+                        @if (auth()->user()->hasFeature('fees.reports.collection_month'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'month']) }}">Collections by month</a>@endif
+                        @if (auth()->user()->hasFeature('fees.reports.summary_date'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'summary']) }}">Collection summary</a>@endif
+                        @if (auth()->user()->hasFeature('fees.reports.recovery'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'recovery']) }}">Fee recovery report</a>@endif
+                        @if (auth()->user()->hasFeature('fees.reports.adjust'))<a class="nav-sublink" href="{{ route('reports', ['fee_report' => 'adjust']) }}">Adjust monthly bills</a>@endif
+                        @if (auth()->user()->hasFeature('fees.modify'))<a class="nav-sublink" href="{{ route('modules.index', 'fees') }}">Edit / remove a bill</a>@endif
+                        @if (auth()->user()->hasFeature('fee_heads.academy') || auth()->user()->hasFeature('fee_heads.class') || auth()->user()->hasFeature('fee_heads.student'))
+                        <details class="nav-group nested-nav-group" @if (request()->routeIs('fee-heads.*')) open @endif><summary class="nav-sublink">Optional extra charges <span class="nav-chevron">⌄</span></summary><div class="nav-sublist">
+                            @foreach (['academy' => 'Whole academy', 'class' => 'A class / section', 'student' => 'One student'] as $scope => $label)
+                                @if (auth()->user()->hasFeature('fee_heads.'.$scope))<a class="nav-sublink" href="{{ route('fee-heads.index', $scope) }}">{{ $label }}</a>@endif
+                            @endforeach
+                        </div></details>
+                        @endif
                     </div></details>
                     @endif
                 </div>

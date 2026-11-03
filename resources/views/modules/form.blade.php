@@ -1,12 +1,13 @@
-@extends('layouts.app', ['title' => ($record ? 'Edit ' : 'Add ').$definition['singular']])
+@extends('layouts.app', ['title' => $module === 'fees' ? ($record ? 'Edit fee bill' : 'Create fee bill') : ($module === 'payments' ? ($record ? 'Edit payment' : 'Record a payment') : ($record ? 'Edit ' : 'Add ').$definition['singular'])])
 
 @section('content')
-<section class="page-heading"><div><div class="eyebrow"><a href="{{ route('modules.index', $module) }}">{{ $definition['label'] }}</a> / {{ $record ? 'Edit record' : 'New record' }}</div><h1>{{ $record ? 'Edit '.$definition['singular'] : 'Add '.$definition['singular'] }}</h1><p>Complete the details below. Required fields are marked.</p></div></section>
+<section class="page-heading"><div><div class="eyebrow"><a href="{{ in_array($module, ['fees', 'payments'], true) ? route('fees.desk') : route('modules.index', $module) }}">{{ in_array($module, ['fees', 'payments'], true) ? 'Fee workspace' : $definition['label'] }}</a> / {{ $record ? 'Edit record' : 'New record' }}</div><h1>{{ $module === 'fees' ? ($record ? 'Edit fee bill' : 'Create a fee bill') : ($module === 'payments' ? ($record ? 'Edit payment' : 'Record a payment') : ($record ? 'Edit '.$definition['singular'] : 'Add '.$definition['singular'])) }}</h1><p>{{ $module === 'fees' ? 'Create the amount due for one student and one month.' : ($module === 'payments' ? 'Record money you have actually received from a student.' : 'Complete the details below. Required fields are marked.') }}</p></div></section>
 <form method="POST" enctype="multipart/form-data" action="{{ $record ? route('modules.update', [$module, $record->id]) : route('modules.store', $module) }}" class="panel form-panel">
     @csrf @if ($record) @method('PUT') @endif
-    @if ($module === 'fees')<div class="fee-form-intro"><div class="fee-form-icon">₨</div><div><span>NEW CHALLAN</span><strong>Create a fee bill</strong><small>Select a student to pull in their current monthly fee. You can adjust the amount before saving.</small></div><div class="fee-live-total"><small>NET BILL</small><strong id="feeBillTotal">₨ 0</strong></div></div>@elseif ($module === 'payments')<div class="fee-form-intro payment-intro"><div class="fee-form-icon">↙</div><div><span>PAYMENT COUNTER</span><strong>Collect a fee</strong><small>Choose a student to see their unpaid challans, then enter the amount received.</small></div><div class="fee-live-total"><small>BALANCE DUE</small><strong id="paymentBalance">Select a bill</strong></div></div>@endif
+    @if ($module === 'fees')<div class="fee-form-intro"><div class="fee-form-icon">₨</div><div><span>STEP 2 · CREATE A BILL</span><strong>One student · one month</strong><small>The total adds monthly tuition and any extra charges assigned to this student. This does not record a payment.</small></div><div class="fee-live-total"><small>BILL TOTAL</small><strong id="feeBillTotal">₨ 0</strong></div></div><p class="fee-create-guide"><strong>Before you save:</strong> Choose the student and month. Tuition and recurring extra charges are calculated automatically. Use discount only when an approved reduction applies.</p>@elseif ($module === 'payments')<div class="fee-form-intro payment-intro"><div class="fee-form-icon">↙</div><div><span>STEP 3 · RECORD MONEY RECEIVED</span><strong>Create a payment receipt</strong><small>Choose a student bill. The student and remaining balance are shown for you.</small></div><div class="fee-live-total"><small>STILL DUE</small><strong id="paymentBalance">Choose a bill</strong></div></div><p class="fee-payment-guide"><strong>How to use this form:</strong> Pick the student bill, enter the amount you actually received, then choose the payment method. Enter a smaller amount for a part payment.</p>@endif
     <div class="form-grid">
         @foreach ($definition['fields'] as $name => $field)
+            @if ($module === 'fees' && ($name === 'status' && ! $record || $name === 'invoice_no')) @continue @endif
             @php($value = old($name, $record?->{$name} ?? request()->query($name)))
             @if (! $record && $value === null)
                 @php($value = match (true) { $module === 'fees' && $name === 'invoice_month' => now()->format('Y-m'), $module === 'fees' && $name === 'due_date' => now()->endOfMonth()->toDateString(), $module === 'fees' && in_array($name, ['discount', 'late_fee'], true) => '0', $module === 'fees' && $name === 'status' => 'unpaid', $module === 'payments' && $name === 'paid_at' => now()->format('Y-m-d\TH:i'), $module === 'payments' && $name === 'method' => 'cash', default => null })
@@ -35,11 +36,12 @@
                     @endif
                     <input type="{{ $field['type'] }}" name="{{ $name }}" id="{{ $name }}" value="{{ $inputValue }}" @if ($field['type'] === 'number') min="0" step="0.01" @endif @if ($module === 'fees' && $name === 'amount' && ! $record) readonly @endif @if ($field['required'] ?? false) required @endif>
                 @endif
+                @if (! empty($field['hint']))<small class="form-hint">{{ $field['hint'] }}</small>@endif
                 @error($name)<small class="field-error">{{ $message }}</small>@enderror
             </div>
         @endforeach
     </div>
-    @if ($module === 'fees')<div class="fee-head-preview" id="feeHeadPreview" data-edit="{{ $record ? '1' : '0' }}">@if ($record?->fee_head_details)<strong>Saved bill breakdown</strong>@foreach ($record->fee_head_details as $item)<span>{{ $item['label'] }} <b>₨ {{ number_format((float) $item['amount'], 2) }}</b></span>@endforeach@else<span class="fee-head-preview-empty">Select a student to see monthly tuition and assigned fee heads.</span>@endif</div>@endif
+    @if ($module === 'fees')<div class="fee-head-preview" id="feeHeadPreview" data-edit="{{ $record ? '1' : '0' }}">@if ($record?->fee_head_details)<strong>Saved bill calculation</strong>@foreach ($record->fee_head_details as $item)<span>{{ $item['label'] }} <b>₨ {{ number_format((float) $item['amount'], 2) }}</b></span>@endforeach@else<span class="fee-head-preview-empty">Select a student to see their tuition and any assigned extra charges.</span>@endif</div>@endif
     @if ($module === 'students')
         <div class="admission-class-summary" aria-live="polite">
             <div><small>Class</small><strong id="selected-class">Select a class</strong></div>
@@ -54,9 +56,8 @@
             @error('photo')<small class="field-error">{{ $message }}</small>@enderror
         </div>
     @endif
-    @if ($module === 'payments')<p class="form-hint">Receipt numbers are generated automatically. Payments cannot exceed the remaining challan balance.</p>@endif
     @if ($module === 'attendance')<p class="form-hint">Saving an existing student’s mark for the same date will update that attendance entry.</p>@endif
     @if ($module === 'messages')<p class="form-hint">This creates a message log in draft status. Connect an SMS provider before sending messages to parents.</p>@endif
-    <div class="form-actions"><a class="btn-outline" href="{{ route('modules.index', $module) }}">Cancel</a><button class="btn-primary" type="submit">{{ $record ? 'Save changes' : 'Save '.$definition['singular'] }}</button></div>
+    <div class="form-actions"><a class="btn-outline" href="{{ in_array($module, ['fees', 'payments'], true) ? route('fees.desk') : route('modules.index', $module) }}">Back</a><button class="btn-primary" type="submit">{{ $record ? 'Save changes' : ($module === 'fees' ? 'Create bill' : ($module === 'payments' ? 'Save payment & create receipt' : 'Save '.$definition['singular'])) }}</button></div>
 </form>
 @endsection

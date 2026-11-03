@@ -116,31 +116,22 @@ document.querySelectorAll('[data-filter-select]').forEach(input=>{
 const studentSelect=document.getElementById('student_id');
 const invoiceSelect=document.getElementById('fee_invoice_id');
 const feeAmount=document.getElementById('amount');
-if(studentSelect&&invoiceSelect){
-    const invoiceSearch=document.querySelector('[data-filter-select="fee_invoice_id"]');
+if(invoiceSelect){
     const initialInvoiceId=invoiceSelect.value;
-    const filterStudentInvoices=()=>{
-        const studentId=studentSelect.value;
-        for(const option of invoiceSelect.options){
-            if(!option.value)continue;
-            option.hidden=(studentId!==''&&option.dataset.studentId!==studentId)||(invoiceSearch?.value&& !option.textContent.toLocaleLowerCase().includes(invoiceSearch.value.toLocaleLowerCase()));
-        }
-        invoiceSelect.dispatchEvent(new Event('options-updated'));
-        const chosen=invoiceSelect.selectedOptions[0];
-        if(chosen?.value&&chosen.hidden){invoiceSelect.value='';invoiceSelect.dispatchEvent(new Event('change',{bubbles:true}));if(feeAmount)feeAmount.value='';}
-    };
-    studentSelect.addEventListener('change',filterStudentInvoices);
-    filterStudentInvoices();
-    invoiceSelect.addEventListener('change',()=>{
+    const updateSelectedInvoice=()=>{
         const option=invoiceSelect.selectedOptions[0];
-        if(!option?.value){const balanceLabel=document.getElementById('paymentBalance');if(balanceLabel)balanceLabel.textContent='Select a bill';return;}
-        studentSelect.value=option.dataset.studentId||'';
-        studentSelect.dispatchEvent(new Event('change',{bubbles:true}));
+        if(!option?.value){
+            const balanceLabel=document.getElementById('paymentBalance');
+            if(balanceLabel)balanceLabel.textContent='Choose a bill';
+            if(feeAmount){feeAmount.value='';feeAmount.removeAttribute('max');}
+            return;
+        }
         if(feeAmount){if(!feeAmount.value||invoiceSelect.value!==initialInvoiceId)feeAmount.value=option.dataset.balance||'';feeAmount.max=option.dataset.balance||'';}
         const balanceLabel=document.getElementById('paymentBalance');
         if(balanceLabel)balanceLabel.textContent='₨ '+Number(option.dataset.balance||0).toLocaleString('en-PK');
-    });
-    if(invoiceSelect.value)invoiceSelect.dispatchEvent(new Event('change'));
+    };
+    invoiceSelect.addEventListener('change',updateSelectedInvoice);
+    updateSelectedInvoice();
 }
 if(studentSelect&&document.getElementById('invoice_month')){
     const originalStudentId=studentSelect.value;
@@ -151,7 +142,7 @@ if(studentSelect&&document.getElementById('invoice_month')){
         let items=[];
         try{items=JSON.parse(student.dataset.feeHeads);}catch{return;}
         feePreview.replaceChildren();
-        const heading=document.createElement('strong');heading.textContent='This student’s monthly fee heads';feePreview.append(heading);
+        const heading=document.createElement('strong');heading.textContent='This student’s bill calculation';feePreview.append(heading);
         for(const item of items){const row=document.createElement('span');const label=document.createTextNode(item.label+' ');const amount=document.createElement('b');amount.textContent='₨ '+Number(item.amount).toLocaleString('en-PK');row.append(label,amount);feePreview.append(row);}
     };
     studentSelect.addEventListener('change',()=>{
