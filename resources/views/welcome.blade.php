@@ -15,6 +15,22 @@
         @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:48px}.hero{padding-top:42px}.dashboard{max-width:620px}.split-grid{gap:30px}.nav{gap:16px}.hero-copy{max-width:610px}}
         @media(max-width:650px){.wrap{width:min(100% - 32px,520px)}.topbar{height:70px}.nav{display:none}.nav-actions{gap:12px}.nav-actions>a:first-child{display:none}.nav-actions .btn{padding:10px 12px;font-size:12px}.hero{padding:36px 0 60px}.hero h1{font-size:44px;letter-spacing:-2.4px}.hero-copy{font-size:15px}.hero-actions{align-items:stretch;flex-direction:column;max-width:260px}.proof{font-size:10px}.dashboard{padding:14px}.metric-grid{gap:6px}.metric{padding:9px}.metric strong{font-size:16px}.note-card{right:-5px;bottom:16px}.trusted-row{justify-content:center;flex-wrap:wrap}.trusted-row span{width:100%;text-align:center}.trusted b{font-size:10px}.section{padding:65px 0}.features{grid-template-columns:1fr}.feature{min-height:0}.split-grid,.contact-grid{grid-template-columns:1fr;gap:32px}.trust-panel{padding:27px}.contact{padding:65px 0}.contact-info h2{font-size:35px}.contact-card{padding:19px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.form-footer{align-items:flex-start;flex-direction:column}.footer-row{align-items:flex-start;flex-direction:column}.footer-links{flex-wrap:wrap}}
         @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+        .contact-card{border-color:#dce8df;border-radius:20px;padding:30px;box-shadow:0 24px 60px #173c2810}
+        .contact-card h3{font-size:20px;letter-spacing:-.3px}
+        .contact-card>p{font-size:13px;line-height:1.6}
+        .field{gap:7px}
+        .field label{font-size:12px;color:#344c43}
+        .field input,.field textarea{min-height:46px;border-radius:10px;background:#fbfcfa;font-size:14px;transition:border-color .18s,box-shadow .18s,background .18s}
+        .field textarea{min-height:128px;line-height:1.6}
+        .field input:focus,.field textarea:focus{background:#fff}
+        .field-error{font-size:11px;line-height:1.5}
+        .alert-error{border:1px solid #f1d2c9;line-height:1.6}
+        .alert-ok{border:1px solid #d4e9d3;line-height:1.6}
+        .form-footer{align-items:flex-end;margin-top:21px}
+        .form-footer small{max-width:270px;font-size:11px}
+        .form-footer .btn{min-height:46px;padding:13px 20px;white-space:nowrap}
+        .captcha-status{font-size:11px;line-height:1.6}
+        @media(max-width:650px){.contact-card{padding:22px}.form-footer{align-items:flex-start}}
     </style>
     @if (!empty($recaptchaSiteKey))
         <script src="https://www.google.com/recaptcha/api.js?render={{ urlencode($recaptchaSiteKey) }}" async defer></script>
@@ -67,7 +83,7 @@
 
         <section class="contact" id="contact"><div class="wrap contact-grid">
             <div class="contact-info"><span class="kicker">Let's talk</span><h2>See what a clearer day could look like.</h2><p>Tell us a little about your academy. Our team can walk you through the platform and help you understand how it fits your daily operations.</p><div class="contact-points"><div><span class="check">✓</span>Discuss your academy's setup and needs</div><div><span class="check">✓</span>Get a guided product walkthrough</div><div><span class="check">✓</span>Plan your next steps with the team</div></div></div>
-            <div class="contact-card"><h3>Request a walkthrough</h3><p>Share your details and we'll get back to you.</p>
+            <div class="contact-card"><h3>Request a walkthrough</h3><p>Tell us about your academy and we'll follow up using the contact details you provide.</p>
                 @if (session('contact_success'))<div class="alert alert-ok" role="status">{{ session('contact_success') }}</div>@endif
                 @if ($errors->any())<div class="alert alert-error" role="alert">Please check the marked fields and try again. @error('recaptcha_token') {{ $message }} @enderror</div>@endif
                 <form id="contact-form" action="{{ route('contact.store') }}" method="POST" novalidate>
@@ -76,12 +92,12 @@
                     <input type="hidden" name="recaptcha_token" id="recaptcha-token">
                     <div class="form-grid">
                         <div class="field"><label for="name">Your name *</label><input id="name" name="name" value="{{ old('name') }}" placeholder="e.g. Ayesha Khan" autocomplete="name" required maxlength="120">@error('name')<span class="field-error">{{ $message }}</span>@enderror</div>
-                        <div class="field"><label for="academy_name">Academy name *</label><input id="academy_name" name="academy_name" value="{{ old('academy_name') }}" placeholder="Your academy" required maxlength="160">@error('academy_name')<span class="field-error">{{ $message }}</span>@enderror</div>
+                        <div class="field"><label for="academy_name">Academy name *</label><input id="academy_name" name="academy_name" value="{{ old('academy_name') }}" placeholder="Your academy" autocomplete="organization" required maxlength="160">@error('academy_name')<span class="field-error">{{ $message }}</span>@enderror</div>
                         <div class="field"><label for="email">Email address *</label><input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="you@academy.com" autocomplete="email" required maxlength="254">@error('email')<span class="field-error">{{ $message }}</span>@enderror</div>
                         <div class="field"><label for="phone">Phone number</label><input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="+92 300 1234567" autocomplete="tel" maxlength="30">@error('phone')<span class="field-error">{{ $message }}</span>@enderror</div>
                         <div class="field full"><label for="message">What would you like to manage? *</label><textarea id="message" name="message" placeholder="Tell us about your academy and what you need help with…" required minlength="15" maxlength="5000">{{ old('message') }}</textarea>@error('message')<span class="field-error">{{ $message }}</span>@enderror</div>
                     </div>
-                    <div class="form-footer"><small>By sending this form, you agree that MSZ ERP may contact you about your request.</small><button class="btn" id="contact-submit" type="submit" @if (empty($recaptchaSiteKey)) disabled title="Contact verification is not configured" @endif>Send request <span>→</span></button></div>
+                    <div class="form-footer"><small>Fields marked * are required. By sending, you agree that MSZ ERP may contact you about your request.</small><button class="btn" id="contact-submit" type="submit" @if (empty($recaptchaSiteKey)) disabled title="Contact verification is not configured" @endif>Send my request <span>→</span></button></div>
                     <div class="captcha-status" id="captcha-status" aria-live="polite">@if (empty($recaptchaSiteKey)) Contact verification is not configured yet. @else Protected by reCAPTCHA. Google <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms</a> apply. @endif</div>
                 </form>
             </div>
@@ -115,7 +131,7 @@
                     .catch(() => {
                         sending = false;
                         button.disabled = false;
-                        button.innerHTML = 'Send request <span>→</span>';
+                        button.innerHTML = 'Send my request <span>→</span>';
                         status.textContent = 'Verification could not load. Please check your connection and try again.';
                     });
 
@@ -127,7 +143,7 @@
                     } else {
                         sending = false;
                         button.disabled = false;
-                        button.innerHTML = 'Send request <span>→</span>';
+                        button.innerHTML = 'Send my request <span>→</span>';
                         status.textContent = 'Verification could not load. Please check your connection and try again.';
                     }
                 };

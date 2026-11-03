@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ContactInquiryReceived;
 use App\Models\ContactMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,20 +47,18 @@ class ContactController extends Controller
         $recipient = config('services.contact_form.recipient');
         if (is_string($recipient) && $recipient !== '') {
             try {
-                Mail::raw(
-                    "Contact request #{$contact->id}\n\nAcademy: {$contact->academy_name}\nName: {$contact->name}\nEmail: {$contact->email}\nPhone: ".($contact->phone ?: '—')."\n\n{$contact->message}",
-                    function ($mail) use ($recipient, $contact): void {
-                        $mail->to($recipient)
-                            ->replyTo($contact->email, $contact->name)
-                            ->subject('MSZ ERP website inquiry · '.$contact->academy_name);
-                    },
-                );
+                Mail::to($recipient)
+                    ->send((new ContactInquiryReceived($contact))->replyTo($contact->email, $contact->name));
             } catch (Throwable $exception) {
                 Log::warning('Contact form email delivery failed; inquiry remains saved.', [
                     'contact_message_id' => $contact->id,
                     'exception' => $exception::class,
                 ]);
             }
+        } else {
+            Log::warning('Contact form inquiry saved without email notification because no recipient is configured.', [
+                'contact_message_id' => $contact->id,
+            ]);
         }
 
         return redirect()->to(route('home').'#contact')->with('contact_success', 'Thanks for reaching out. Your message has been received.');
