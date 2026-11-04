@@ -10,7 +10,7 @@
             @if ($module === 'fees' && ($name === 'status' && ! $record || $name === 'invoice_no')) @continue @endif
             @php($value = old($name, $record?->{$name} ?? request()->query($name)))
             @if (! $record && $value === null)
-                @php($value = match (true) { $module === 'fees' && $name === 'invoice_month' => now()->format('Y-m'), $module === 'fees' && $name === 'due_date' => now()->endOfMonth()->toDateString(), $module === 'fees' && in_array($name, ['discount', 'late_fee'], true) => '0', $module === 'fees' && $name === 'status' => 'unpaid', $module === 'payments' && $name === 'paid_at' => now()->format('Y-m-d\TH:i'), $module === 'payments' && $name === 'method' => 'cash', default => null })
+                @php($value = match (true) { $module === 'fees' && $name === 'invoice_month' => now()->format('Y-m'), $module === 'fees' && $name === 'due_date' => today()->toDateString(), $module === 'fees' && in_array($name, ['discount', 'late_fee'], true) => '0', $module === 'fees' && $name === 'status' => 'unpaid', $module === 'payments' && $name === 'paid_at' => now()->format('Y-m-d\TH:i'), $module === 'payments' && $name === 'method' => 'cash', $field['type'] === 'date' => today()->toDateString(), $field['type'] === 'month' => now()->format('Y-m'), $field['type'] === 'datetime-local' => now()->format('Y-m-d\TH:i'), default => null })
             @endif
             <div class="form-field {{ $field['type'] === 'textarea' ? 'wide' : '' }}">
                 @if ($field['type'] !== 'checkbox')<label for="{{ $name }}">{{ $field['label'] }} @if ($field['required'] ?? false)<i>*</i>@endif</label>@endif

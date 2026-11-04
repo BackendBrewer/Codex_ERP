@@ -34,12 +34,12 @@ class ExaminationWorkflowController extends Controller
             'subject' => ['required', 'string', 'max:120'],
             'title' => ['required', 'string', 'max:120'],
             'month' => ['required', 'date_format:Y-m'],
-            'exam_date' => ['nullable', 'date'],
+            'exam_date' => ['required', 'date'],
             'total_marks' => ['required', 'numeric', 'gt:0', 'max:999999.99'],
             'passing_marks' => ['required', 'numeric', 'min:0', 'lte:total_marks'],
         ]);
         abort_unless(AcademyClass::query()->whereKey($data['class_id'])->exists(), 404);
-        $date = $data['exam_date'] ?? $data['month'].'-01';
+        $date = $data['exam_date'];
         abort_unless(substr($date, 0, 7) === $data['month'], 422, 'The exam date must be in the selected month.');
 
         $examination = Examination::query()->create([

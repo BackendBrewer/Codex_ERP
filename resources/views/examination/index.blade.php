@@ -8,7 +8,7 @@
     <label><span>Subject</span><input name="subject" required maxlength="120" value="{{ old('subject') }}" placeholder="e.g. Urdu">@error('subject')<small class="field-error">{{ $message }}</small>@enderror</label>
     <label><span>Test name</span><input name="title" required maxlength="120" value="{{ old('title') }}" placeholder="e.g. T1">@error('title')<small class="field-error">{{ $message }}</small>@enderror</label>
     <label><span>Month</span><input type="month" name="month" required value="{{ old('month', now()->format('Y-m')) }}">@error('month')<small class="field-error">{{ $message }}</small>@enderror</label>
-    <label><span>Test date (optional)</span><input type="date" name="exam_date" value="{{ old('exam_date') }}">@error('exam_date')<small class="field-error">{{ $message }}</small>@enderror</label>
+    <label><span>Test date</span><input type="date" name="exam_date" required value="{{ old('exam_date', today()->toDateString()) }}">@error('exam_date')<small class="field-error">{{ $message }}</small>@enderror</label>
     <label><span>Total marks</span><input type="number" name="total_marks" min="1" step="0.01" required value="{{ old('total_marks', 20) }}">@error('total_marks')<small class="field-error">{{ $message }}</small>@enderror</label>
     <label><span>Passing marks</span><input type="number" name="passing_marks" min="0" step="0.01" required value="{{ old('passing_marks', 7) }}">@error('passing_marks')<small class="field-error">{{ $message }}</small>@enderror</label>
     <div class="form-actions"><button class="btn-primary" type="submit">Create award list</button></div>
