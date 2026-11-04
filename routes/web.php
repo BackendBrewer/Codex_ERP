@@ -4,6 +4,7 @@ use App\Http\Controllers\AcademyModuleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExaminationWorkflowController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuperAdmin\AcademyChangeRequestController;
 use App\Http\Controllers\SuperAdmin\AcademyController;
@@ -55,6 +56,16 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::middleware('role:admin')->group(function (): void {
+        Route::prefix('examination')->name('examination.')->group(function (): void {
+            Route::get('/', [ExaminationWorkflowController::class, 'index'])->name('index');
+            Route::post('/award-lists', [ExaminationWorkflowController::class, 'store'])->name('award-lists.store');
+            Route::get('/award-lists/{examination}', [ExaminationWorkflowController::class, 'awardList'])->whereNumber('examination')->name('award-lists.show');
+            Route::put('/award-lists/{examination}/marks', [ExaminationWorkflowController::class, 'updateMarks'])->whereNumber('examination')->name('marks.update');
+            Route::get('/award-lists/{examination}/print', [ExaminationWorkflowController::class, 'printAwardList'])->whereNumber('examination')->name('award-lists.print');
+            Route::get('/result-sheet', [ExaminationWorkflowController::class, 'resultSheet'])->name('result-sheet');
+            Route::get('/students/{student}/result-card', [ExaminationWorkflowController::class, 'resultCard'])->whereNumber('student')->name('result-card');
+            Route::post('/send-result-sms', [ExaminationWorkflowController::class, 'sendResultSms'])->name('send-result-sms');
+        });
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::get('/reports', [AcademyModuleController::class, 'reports'])->name('reports');
         Route::get('/fees/bulk', [AcademyModuleController::class, 'bulkFeeForm'])->name('fees.bulk.form');

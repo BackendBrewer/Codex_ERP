@@ -4,8 +4,6 @@ use App\Models\AcademyClass;
 use App\Models\AccountEntry;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
-use App\Models\Examination;
-use App\Models\ExamResult;
 use App\Models\FeeInvoice;
 use App\Models\FeePayment;
 use App\Models\Inquiry;
@@ -58,16 +56,6 @@ return [
             'label' => 'Attendance', 'singular' => 'Attendance entry', 'icon' => '◷', 'model' => AttendanceRecord::class,
             'columns' => ['attendance_date' => 'Date', 'student.admission_no' => 'Admission ID', 'student.name' => 'Student', 'student.academyClass.name' => 'Class', 'status' => 'Mark', 'note' => 'Note'], 'with' => ['student.academyClass'], 'searchable' => ['note', 'attendance_date', 'status', 'student.name', 'student.admission_no', 'student.guardian_phone', 'student.academyClass.name'],
             'fields' => ['student_id' => ['label' => 'Student', 'type' => 'select', 'source' => 'students', 'required' => true], 'attendance_date' => ['label' => 'Date', 'type' => 'date', 'required' => true], 'status' => ['label' => 'Attendance mark', 'type' => 'select', 'options' => ['present' => 'Present', 'absent' => 'Absent', 'late' => 'Late', 'leave' => 'Leave'], 'required' => true], 'note' => ['label' => 'Note', 'type' => 'text']],
-        ],
-        'exams' => [
-            'label' => 'Exams & award lists', 'singular' => 'Exam', 'icon' => '✎', 'model' => Examination::class,
-            'columns' => ['title' => 'Exam', 'academyClass.name' => 'Class', 'subject' => 'Subject', 'exam_date' => 'Exam date', 'total_marks' => 'Total marks', 'passing_marks' => 'Pass marks'], 'with' => ['academyClass'], 'searchable' => ['title', 'subject', 'exam_date', 'academyClass.name'],
-            'fields' => ['title' => ['label' => 'Exam name', 'type' => 'text', 'required' => true], 'class_id' => ['label' => 'Class', 'type' => 'select', 'source' => 'classes', 'required' => true], 'subject' => ['label' => 'Subject', 'type' => 'text', 'required' => true], 'exam_date' => ['label' => 'Exam date', 'type' => 'date', 'required' => true], 'total_marks' => ['label' => 'Total marks', 'type' => 'number', 'required' => true], 'passing_marks' => ['label' => 'Passing marks', 'type' => 'number', 'required' => true]],
-        ],
-        'results' => [
-            'label' => 'Results & marks', 'singular' => 'Result entry', 'icon' => '▥', 'model' => ExamResult::class,
-            'columns' => ['examination.title' => 'Exam', 'student.name' => 'Student', 'student.academyClass.name' => 'Class', 'marks_obtained' => 'Marks', 'remarks' => 'Remarks'], 'with' => ['examination', 'student.academyClass'], 'searchable' => ['remarks', 'examination.title', 'student.name', 'student.admission_no', 'student.academyClass.name'],
-            'fields' => ['examination_id' => ['label' => 'Exam / award list', 'type' => 'select', 'source' => 'exams', 'required' => true], 'student_id' => ['label' => 'Student', 'type' => 'select', 'source' => 'students', 'required' => true], 'marks_obtained' => ['label' => 'Marks obtained', 'type' => 'number', 'required' => true], 'remarks' => ['label' => 'Remarks', 'type' => 'textarea']],
         ],
         'staff' => [
             'label' => 'Staff & payroll', 'singular' => 'Staff member', 'icon' => '♧', 'model' => Employee::class,

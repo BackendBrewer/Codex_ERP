@@ -57,13 +57,18 @@
                 </div>
             </details>
             @endif
-            @if (collect(['attendance', 'exams', 'results', 'staff', 'accounts', 'messages'])->contains(fn ($feature) => auth()->user()->hasFeature($feature)))<div class="nav-section-label">Operations</div>@endif
-            @foreach (['attendance', 'exams', 'results', 'staff', 'accounts', 'messages'] as $slug)
+            @if (collect(['attendance', 'staff', 'accounts', 'messages'])->contains(fn ($feature) => auth()->user()->hasFeature($feature)))<div class="nav-section-label">Operations</div>@endif
+            @foreach (['attendance', 'staff', 'accounts', 'messages'] as $slug)
                 @if (auth()->user()->hasFeature(config('academy_access.module_features.'.$slug)))
                     @php($module = config('academy.modules.'.$slug))
                     <a class="nav-link {{ request()->routeIs('modules.*') && request()->route('module') === $slug ? 'active' : '' }}" href="{{ route('modules.index', $slug) }}"><span>{{ $module['icon'] }}</span>{{ $module['label'] }}</a>
                 @endif
             @endforeach
+            @if (auth()->user()->hasFeature('exams') || auth()->user()->hasFeature('results'))
+                <div class="nav-section-label">Examination tools</div>
+                @if (auth()->user()->hasFeature('exams'))<a class="nav-link {{ request()->routeIs('examination.index', 'examination.award-lists.*', 'examination.marks.*') ? 'active' : '' }}" href="{{ route('examination.index') }}"><span>✎</span>Award lists</a>@endif
+                @if (auth()->user()->hasFeature('results'))<a class="nav-link {{ request()->routeIs('examination.result-sheet', 'examination.result-card', 'examination.send-result-sms') ? 'active' : '' }}" href="{{ route('examination.result-sheet') }}"><span>▥</span>Class-wise results</a>@endif
+            @endif
             @if (auth()->user()->hasFeature('reports.dashboard'))<a class="nav-link {{ request()->routeIs('reports') && ! request()->query('fee_report') ? 'active' : '' }}" href="{{ route('reports') }}"><span>▥</span>Reports</a>@endif
         </nav>
         <div class="sidebar-bottom">
