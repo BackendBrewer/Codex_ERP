@@ -16,6 +16,7 @@
     </style>
 </head>
 <body>
+@include('documents.partials.letterhead-print-background')
 <div class="print-actions"><button class="btn-primary" onclick="window.print()">Print receipt</button> <a class="btn-outline" href="{{ route('modules.index', 'payments') }}">Back to receipts</a></div>
 <article class="receipt">
     @if ($academy?->letterhead_path)<img class="receipt-letterhead" src="{{ asset('storage/'.$academy->letterhead_path) }}" alt="{{ $academy->name }} letterhead">@endif

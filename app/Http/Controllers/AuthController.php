@@ -2,42 +2,43 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
+use App\Services\AuthenticationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly AuthenticationService $authentication) {}
+
     public function showLogin(): View
     {
         return view('auth.login');
     }
 
-    public function login(Request $request): RedirectResponse
+    public function login(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->validate(['email' => ['required', 'email'], 'password' => ['required', 'string']]);
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        $result = $this->authentication->attempt($request->validated(), $request->boolean('remember'));
+        if ($result === 'invalid_credentials') {
             return back()->withErrors(['email' => 'Email or password was not recognised.'])->onlyInput('email');
         }
-        $user = Auth::user();
-        if (! $user->isSuperAdmin() && ($user->role !== 'admin' || $user->academy === null || ! $user->academy->is_active)) {
-            Auth::logout();
+        if ($result === 'inactive_academy') {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return back()->withErrors(['email' => 'This academy account is inactive. Contact the system administrator.'])->onlyInput('email');
         }
-        $request->session()->regenerate();
 
-        return $user->isSuperAdmin()
-            ? redirect()->route('superadmin.academies')
-            : redirect()->route('dashboard');
+        $request->session()->regenerate();
+        $user = $request->user();
+
+        return $user->isSuperAdmin() ? redirect()->route('superadmin.academies') : redirect()->route('dashboard');
     }
 
     public function logout(Request $request): RedirectResponse
     {
-        Auth::logout();
+        $this->authentication->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

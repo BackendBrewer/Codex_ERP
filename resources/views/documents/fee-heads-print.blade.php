@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ asset('css/academy.css') }}">
 </head>
 <body class="print-page">
+@include('documents.partials.letterhead-print-background')
 <header class="print-toolbar">
     <a href="{{ route('fee-heads.index', $scope) }}">← Back to fee heads</a>
     <button onclick="window.print()">Print fee heads</button>

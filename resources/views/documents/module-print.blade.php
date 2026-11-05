@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{{ asset('css/academy.css') }}">
 </head>
 <body class="print-page">
+    @include('documents.partials.letterhead-print-background')
     <header class="print-toolbar"><a href="{{ route('modules.index', $module) }}">← Back to {{ $definition['label'] }}</a><button type="button" onclick="window.print()">Print {{ $definition['label'] }}</button></header>
     <main class="print-document">
         <header class="print-document-heading"><div><span>MSZ ERP · ACADEMY RECORDS</span><h1>{{ $definition['label'] }}</h1>@if ($search !== '')<p>Search: “{{ $search }}”</p>@endif</div><div><strong>{{ $records->count() }}</strong><small>matching records</small><small>{{ now()->timezone('Asia/Karachi')->format('d M Y, h:i A') }}</small></div></header>

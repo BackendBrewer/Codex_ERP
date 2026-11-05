@@ -16,6 +16,7 @@
     </style>
 </head>
 <body>
+@include('documents.partials.letterhead-print-background')
 <div class="print-actions"><button class="btn-primary" onclick="window.print()">Print challan</button> <a class="btn-outline" href="{{ route('modules.index', 'fees') }}">Back to challans</a></div>
 @php($balance = $document->status === 'waived' ? 0 : max(0, (float) $document->amount - (float) $document->discount + (float) $document->late_fee - (float) $document->payments->sum('amount')))
 <article class="challan">
